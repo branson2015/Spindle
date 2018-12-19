@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title></title>
+    <script src="../dist/spindle.umd.js"></script>
+  </head>
+  <body>
+
+    <div class="test" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">I am a test div</div>
+
+  </body>
+  <script>
+    var obj = {
+      property1: 'test'
+    }
+
+    var element = document.getElementById("uniqueTest");
+    Bind = Spindle.Bind;
+
+    Bind(obj, element, {
+      property1: "#uniqueTest:innerHTML"
+    });
+  </script>
+</html>

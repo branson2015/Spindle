@@ -4,9 +4,9 @@ export default [
 		input: 'src/main.js',
 		external: [],
 		output: [
-            { file: spindle.umd.js, format: 'umd'},
-			{ file: spindle.cjs.js, format: 'cjs' },
-			{ file: spindle.esm.js, format: 'es' }
+            { dir: 'dist', file: 'spindle.umd.js', format: 'umd', name: 'Spindle'},
+			{ dir: 'dist', file: 'spindle.cjs.js', format: 'cjs' },
+			{ dir: 'dist', file: 'spindle.esm.js', format: 'es' }
 		]
 	}
 ];
