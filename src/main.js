@@ -23,9 +23,9 @@ bind(obj, element, {
 });
 
 */
-export function Bind(obj, html, mapping){
+export function Bind(obj, htmlScope, mapping){
     if(!this || this === window)
-        return new Bind(obj, html, mapping);
+        return new Bind(obj, htmlScope, mapping);
 
     
 
@@ -39,25 +39,27 @@ export function Bind(obj, html, mapping){
         var type = (colonloc == -1 ? 'innerHTML' : identifier.substr(colonloc+1));
         identifier = identifier.substr(0, colonloc);
 
+        var value;
+
         //get the html elements to which the value refers
-        var el = getElement(identifier, html);
-        if(el.length == 1 || !el.lenth){
-            el = el[0];
-            var value = el.type;
-            console.log(el, type, value);
+        var el = getElement(identifier, htmlScope);
+        if(!el.lenth)   throw 'error! no length'
+
+        for(var i = 0; i < el.length; i++){
+
+            //TODO: add eventlisteners for two way data binding, take care of circular setting
+            //element.addEventListener(event || 'input', oninput);
+            e = el[i];
+            value = e.type;
             Object.defineProperty(obj, key, {
                 get: function(){
                     return value;
                 },
                 set: function(v){
-                    el.type = v;
-                    obj[key] = v;
+                    e[type] = v;
+                    value = v;
                 }
             });
-
-        }else{
-
-            throw 'not implemented yet'
         }
         
     }
@@ -83,6 +85,7 @@ function checkProperty(obj, property){
 }
 
 function getElement(identifier, html){
+
     if(typeof identifier === 'object' && isElement(identifier)){
         throw 'not implemented yet'
     }
@@ -91,6 +94,7 @@ function getElement(identifier, html){
         throw 'not implemented yet'
     }
     
+    //change this to use document.querySelectorAll
     else if(typeof identifier === 'string'){
         if(identifier[0] === '#'){
             return find_html_children_id(html, identifier.substr(1));
@@ -107,14 +111,14 @@ function getElement(identifier, html){
 function find_html_children_class(start, find){
     return find_all_tree(start, find, 
         function(curr, tofind){ return (curr.class === tofind ?  true :  false); },
-        function(curr){ var children = curr.children(); },
+        function(curr){ return curr.children; },
         false);
 }
 
 function find_html_children_id(start, find){
     return find_all_tree(start, find, 
         function(curr, tofind){ return (curr.id === tofind ?  true :  false); },
-        function(curr){ var children = curr.children(); },
+        function(curr){ return curr.children; },
         true);
 }
 
@@ -129,7 +133,8 @@ function find_all_tree(start, find, comparefn, traversefn, unique){
     var children = traversefn(start);
     if(children){
         if(!children.length) children = [children];
-        for(child in children){
+        for(var i = 0; i < children.length; i++){
+            var child = children[i];
             found = found.concat(find_all_tree(child, find, comparefn, traversefn));
             if(unique && found.length > 0) return found; 
         }

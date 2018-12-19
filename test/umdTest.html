@@ -5,7 +5,9 @@
   </head>
   <body>
 
-    <div class="test" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">I am a test div</div>
+    <div class="test" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">
+      <input type="text" id="inputtext">
+    </div>
 
   </body>
   <script>
@@ -17,7 +19,7 @@
     Bind = Spindle.Bind;
 
     Bind(obj, element, {
-      property1: "#uniqueTest:innerHTML"
+      property1: "#inputtext:value"
     });
   </script>
 </html>
