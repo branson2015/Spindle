@@ -7,19 +7,42 @@
 
     <div class="test" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">
       <input type="text" id="inputtext">
+
+      <div id="2_1">2_1</div>
+      <div id="2_2">2_2</div>
+
     </div>
+
+    
 
   </body>
   <script>
     var obj = {
-      property1: 'test'
+      property1: 'testCHANGE',
+      property2: {
+        property2_1: '2.1 CHANGE',
+        property2_2: '2.2 CHANGE'
+      }
     }
 
     var element = document.getElementById("uniqueTest");
-    Bind = Spindle.Bind;
 
-    Bind(obj, element, {
-      property1: "#inputtext:value"
+    Spindle(obj, element, {
+      property1: "#inputtext:value",
+      property2: {
+        property2_2: "#2_2"
+      },    
+      'property2.property2_1' : '#2_1',
     });
+
+    /*var obj = {
+      property1: 'test',
+    }
+
+    var element = document.getElementById("uniqueTest");
+
+    Spindle(obj, element, {
+      property1: "#inputtext:value"
+    });*/
   </script>
 </html>

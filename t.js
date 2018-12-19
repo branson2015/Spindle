@@ -32,12 +32,12 @@ this ensures that every time Ctor is called, it will create a new version of its
 //Simpler way:
 
 var Ctor = function(args){
-    function privateConstructor(args){/*...*/};
-
-    if(!this || this === window)
+   if(!this || this === window)
         return new Ctor(args);
-
+        
+    function privateConstructor(args){/*...*/};
     privateConstructor(args)
+
     return this;
 }
 

@@ -23,7 +23,7 @@ bind(obj, element, {
 });
 
 */
-export function Bind(obj, htmlScope, mapping){
+export default function Bind(obj, htmlScope, mapping){
     if(!this || this === window)
         return new Bind(obj, htmlScope, mapping);
 
@@ -31,40 +31,65 @@ export function Bind(obj, htmlScope, mapping){
 
     //todo: make this recursive for objects that contain objects 
     
-    //for every mapping
-    for(var key in mapping){
-        var identifier = mapping[key];
-
-        var colonloc = identifier.indexOf(':')
-        var type = (colonloc == -1 ? 'innerHTML' : identifier.substr(colonloc+1));
-        identifier = identifier.substr(0, colonloc);
-
-        var value;
-
-        //get the html elements to which the value refers
-        var el = getElement(identifier, htmlScope);
-        if(!el.lenth)   throw 'error! no length'
-
-        for(var i = 0; i < el.length; i++){
-
-            //TODO: add eventlisteners for two way data binding, take care of circular setting
-            //element.addEventListener(event || 'input', oninput);
-            e = el[i];
-            value = e.type;
-            Object.defineProperty(obj, key, {
-                get: function(){
-                    return value;
-                },
-                set: function(v){
-                    e[type] = v;
-                    value = v;
+    function mapbind(obj, mapping){
+        //for every mapping
+        var origobj = obj;
+        for(var key in mapping){
+            obj = origobj;
+            
+            var nestedKey = key.split('.');
+            if(typeof mapping[key] !== 'string'){
+                mapbind(obj[key], mapping[key]);
+                continue;
+            }else if(typeof mapping[key] === 'string'){
+                //need to parse for .'s for nested objects in key
+                for(var i = 0; i < nestedKey.length-1; i++){
+                    obj = obj[nestedKey[i]];
                 }
-            });
+            }
+            
+            var identifier = mapping[key];
+            key = nestedKey[nestedKey.length-1];
+            
+
+            var type
+            var colonloc = identifier.indexOf(':')
+            if(colonloc == -1){
+                type = 'innerHTML'
+            }else{
+                type = identifier.substr(colonloc+1);
+                identifier = identifier.substr(0, colonloc);
+            }
+            
+
+            var value = obj[key];
+
+            //get the html elements to which the value refers (will always return array)
+            var el = getElements(identifier, htmlScope);
+
+            //can be multiple HTML elements per object
+            for(var i = 0; i < el.length; i++){
+
+                //TODO: add eventlisteners for two way data binding, take care of circular setting
+                //element.addEventListener(event || 'input', oninput);
+                var e = el[i];
+                e[type] = value
+
+                Object.defineProperty(obj, key, {
+                    get: function(){
+                        return value;
+                    },
+                    set: function(v){
+                        e[type] = value = v;
+                    }
+                });
+            }
+            
         }
-        
     }
 
-    return this;
+    mapbind(obj, mapping);
+
 }
 
 function setProperty(obj, property, value){
@@ -84,7 +109,7 @@ function checkProperty(obj, property){
     }
 }
 
-function getElement(identifier, html){
+function getElements(identifier, htmlScope){
 
     if(typeof identifier === 'object' && isElement(identifier)){
         throw 'not implemented yet'
@@ -94,52 +119,50 @@ function getElement(identifier, html){
         throw 'not implemented yet'
     }
     
-    //change this to use document.querySelectorAll
     else if(typeof identifier === 'string'){
+        //find ID's inside of htmlScope element
         if(identifier[0] === '#'){
-            return find_html_children_id(html, identifier.substr(1));
-        }else if(identifier[0] === '.'){
-            return find_html_children_class(html, identifier.substr(1));
+            return find_html_children_id(htmlScope, identifier.substr(1));
+        }
+        //find classes inside of htmlScope element
+        else if(identifier[0] === '.'){
+            return find_html_children_class(htmlScope, identifier.substr(1));
+        //find elements specified by string inside of htmlScope element
         }else{
-            
-            throw 'not implemented yet'
+            console.log('identifier:', identifier);
+            throw 'not implemented yet';
 
         }
     }
 }
 
-function find_html_children_class(start, find){
-    return find_all_tree(start, find, 
-        function(curr, tofind){ return (curr.class === tofind ?  true :  false); },
+function find_html_children_class(curr, find){
+    return find_all_tree(curr, find, 
+        function(curr, find){ return (curr.class === find ?  true :  false); },
         function(curr){ return curr.children; },
         false);
 }
 
-function find_html_children_id(start, find){
-    return find_all_tree(start, find, 
-        function(curr, tofind){ return (curr.id === tofind ?  true :  false); },
+function find_html_children_id(curr, find){
+    return find_all_tree(curr, find, 
+        function(curr, find){ return (curr.id === find ?  true :  false); },
         function(curr){ return curr.children; },
         true);
 }
 
-function find_all_tree(start, find, comparefn, traversefn, unique){
+function find_all_tree(curr, find, comparefn, traversefn, unique){
     var found = [];
 
-    if(comparefn(start, find)){
-        found.push(start);
+    if(comparefn(curr, find)){
+        found.push(curr);
         if(unique) return found;
     }
 
-    var children = traversefn(start);
-    if(children){
-        if(!children.length) children = [children];
-        for(var i = 0; i < children.length; i++){
-            var child = children[i];
-            found = found.concat(find_all_tree(child, find, comparefn, traversefn));
-            if(unique && found.length > 0) return found; 
-        }
-    }else{
-        return [];
+    var children = traversefn(curr);
+    for(var i = 0; i < children.length; i++){
+        var child = children[i];
+        found = found.concat(find_all_tree(child, find, comparefn, traversefn));
+        if(unique && found.length > 0) return found; 
     }
 
     return found;
