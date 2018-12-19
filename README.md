@@ -1,3 +1,3 @@
-<img src="spindle-logo.png" alt="Spindle Logo" width="200" height="200"/>
+![Spindle Logo](spindle-logo.png)
 # Spindle.js
 A JavaScript library for front-end development.
