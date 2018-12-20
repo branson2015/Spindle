@@ -1,7 +1,4 @@
-/*TODO: 1. arrays as property values
-        2. if property values aren't established in the object, have the object inherit the values already in the DOM
 
-*/
 /*
 example usage:
 
@@ -64,40 +61,46 @@ export default function Bind(obj, htmlScope, mapping){
 
             //get the html elements to which the value refers (will always return array)
             var el = getElements(identifier, htmlScope);
-
+    
             //TODO: handle splitting property value up into array
             var value = obj[key];
 
-            //can be multiple HTML elements per object
-            for(var i = 0; i < el.length; i++){
-                var e = el[i];
-                if(value !== undefined){
-                    e[type] = value;
-                }else{
-                    obj[key] = value = e[type];
-                }
-
-                //TODO: add eventlisteners for two way data binding, take care of circular setting
-                //element.addEventListener(event || 'input', oninput);
+            //TODO: add eventlisteners for two way data binding, take care of circular setting
+            //element.addEventListener(event || 'input', oninput);
                 
-            }
-            makeBind(obj, key, value, el, type);
-        }
-    }
 
-    //has to be done inside it's own function so value is unique
-    function makeBind(obj, key, val, el, type){
-        var value = val;
-        Object.defineProperty(obj, key, {
-            get: function(){
-                return value;
-            },
-            set: function(v){
-                for(var i = 0; i < el.length; i++){
-                    el[i][type] = value = v;
+            (function bindobj(obj, key, val, el, type){//has to be done inside it's own function so value is unique
+                var value = val;
+                if(value.constructor === Array){
+                    for(var i = 0; i < el.length; i++){
+                        if(!value[i])
+                            value.push(el[i][type]);
+                        bindobj(value, i, value[i], [el[i]], type);
+                    }
+                }else{
+                    //establish 1 to all binding
+                    
+                    if(value !== undefined){
+                        for(var i = 0; i < el.length; i++){
+                            el[i][type] = value;
+                        }
+                    }else{
+                        obj[key] = value = undefined;
+                    }
+                    Object.defineProperty(obj, key, {
+                        get: function(){
+                            return value;
+                        },
+                        set: function(v){
+                            for(var i = 0; i < el.length; i++){
+                                el[i][type] = value = v;
+                            }
+                        }
+                    });
                 }
-            }
-        });
+            })(obj, key, value, el, type);
+
+        }
     }
 
     mapbind(obj, mapping);
@@ -126,7 +129,7 @@ function checkProperty(obj, property){
 
 function getElements(identifier, htmlScope){
 
-    if(typeof identifier === 'object' && isElement(identifier)){
+    if(isElement(identifier)){
         //NEEDS TESTING
         return find_html_children_element(htmlScope, identifier);
     }
@@ -211,6 +214,8 @@ function find_html_children_id(curr, find){
 }
 
 function find_all_tree(curr, find, comparefn, traversefn, unique){
+    unique = unique || false;
+
     var found = [];
 
     if(comparefn(curr, find)){

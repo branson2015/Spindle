@@ -9,7 +9,7 @@
       <input type="text" id="inputtext">
 
       <div id="2_1">2_1</div>
-      <div><a></a></div>
+      <div>2_1.5</div>
       <div id="2_2">2_2</div>
 
     </div>
@@ -24,18 +24,18 @@
         property2_1: '2.1 CHANGE',
         property2_2: '2.2 CHANGE'
       },
-      property3: '3'
+      property3: []
     }
 
     var element = document.getElementById("uniqueTest");
 
     Spindle(obj, element, {
-      property1: "#inputtext:value",    //not immune
-      property2: {                      //immune
+      //property1: "#inputtext:value",
+      /*property2: {     
         property2_2: "#2_2"
-      },
-      'property2.property2_1' : '#2_1',   //not immune
-      property3: 'div.div.a'
+      },*/
+      //'property2.property2_1' : '#2_1', 
+      property3: 'div.div'
     });
   </script>
 </html>
