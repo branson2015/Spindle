@@ -9,6 +9,7 @@
       <input type="text" id="inputtext">
 
       <div id="2_1">2_1</div>
+      <div><a></a></div>
       <div id="2_2">2_2</div>
 
     </div>
@@ -22,7 +23,8 @@
       property2: {
         property2_1: '2.1 CHANGE',
         property2_2: '2.2 CHANGE'
-      }
+      },
+      property3: 'test'
     }
 
     var element = document.getElementById("uniqueTest");
@@ -33,16 +35,7 @@
         property2_2: "#2_2"
       },    
       'property2.property2_1' : '#2_1',
+      property3: 'div.div.a'
     });
-
-    /*var obj = {
-      property1: 'test',
-    }
-
-    var element = document.getElementById("uniqueTest");
-
-    Spindle(obj, element, {
-      property1: "#inputtext:value"
-    });*/
   </script>
 </html>

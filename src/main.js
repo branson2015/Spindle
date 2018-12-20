@@ -26,10 +26,6 @@ bind(obj, element, {
 export default function Bind(obj, htmlScope, mapping){
     if(!this || this === window)
         return new Bind(obj, htmlScope, mapping);
-
-    
-
-    //todo: make this recursive for objects that contain objects 
     
     function mapbind(obj, mapping){
         //for every mapping
@@ -38,60 +34,68 @@ export default function Bind(obj, htmlScope, mapping){
             obj = origobj;
             
             var nestedKey = key.split('.');
+            //if the key is an object
             if(typeof mapping[key] !== 'string'){
                 mapbind(obj[key], mapping[key]);
                 continue;
-            }else if(typeof mapping[key] === 'string'){
-                //need to parse for .'s for nested objects in key
+            }
+            //if the key is a string
+            else if(typeof mapping[key] === 'string'){
                 for(var i = 0; i < nestedKey.length-1; i++){
-                    obj = obj[nestedKey[i]];
+                    obj = obj[nestedKey[i]];    //reset obj to be furthest nested element in to which key refers
                 }
             }
             
             var identifier = mapping[key];
+            //reset key to refer to last nested object (obj will refer to it as well at this point)
             key = nestedKey[nestedKey.length-1];
             
 
             var type
-            var colonloc = identifier.indexOf(':')
-            if(colonloc == -1){
-                type = 'innerHTML'
+            if(typeof identifier === 'string'){
+                var colonloc = identifier.indexOf(':')
+                if(colonloc != -1){
+                    type = identifier.substr(colonloc+1);
+                    identifier = identifier.substr(0, colonloc);
+                }else{
+                    type = 'innerHTML';
+                }
             }else{
-                type = identifier.substr(colonloc+1);
-                identifier = identifier.substr(0, colonloc);
+                type = 'innerHTML'
             }
-            
-
-            var value = obj[key];
 
             //get the html elements to which the value refers (will always return array)
             var el = getElements(identifier, htmlScope);
 
             //can be multiple HTML elements per object
+            var value = obj[key];
             for(var i = 0; i < el.length; i++){
-
-                //TODO: add eventlisteners for two way data binding, take care of circular setting
-                //element.addEventListener(event || 'input', oninput);
                 var e = el[i];
                 e[type] = value
 
-                Object.defineProperty(obj, key, {
-                    get: function(){
-                        return value;
-                    },
-                    set: function(v){
-                        e[type] = value = v;
-                    }
-                });
+                //TODO: add eventlisteners for two way data binding, take care of circular setting
+                //element.addEventListener(event || 'input', oninput);
+                
             }
+            Object.defineProperty(obj, key, {
+                get: function(){
+                    return value;
+                },
+                set: function(v){
+                    for(var i = 0; i < el.length; i++){
+                        el[i][type] = value = v;
+                    }
+                }
+            });
             
         }
     }
 
     mapbind(obj, mapping);
-
+    return this; //don't need to do this, but why not. this.whatever is never even set anywhere.
 }
 
+//not currently used
 function setProperty(obj, property, value){
     if(checkProperty(obj, property))
         obj[property] = value;
@@ -108,15 +112,19 @@ function checkProperty(obj, property){
         return false;
     }
 }
+//end of not currently used
+
 
 function getElements(identifier, htmlScope){
 
     if(typeof identifier === 'object' && isElement(identifier)){
-        throw 'not implemented yet'
+        //NEEDS TESTING
+        return find_html_children_element(htmlScope, identifier);
     }
 
     else if(typeof identifier === 'function'){
-        throw 'not implemented yet'
+        //NEEDS TESTING
+        return find_html_children_element(htmlScope, identifier());
     }
     
     else if(typeof identifier === 'string'){
@@ -129,25 +137,56 @@ function getElements(identifier, htmlScope){
             return find_html_children_class(htmlScope, identifier.substr(1));
         //find elements specified by string inside of htmlScope element
         }else{
-            console.log('identifier:', identifier);
-            throw 'not implemented yet';
+            //div.div.id.a stuff here
+            //THIS NEEDS TESTING
 
+            function childTags(curr, tag){
+                var found = [];
+                var newtag = tag.slice();
+                var currtag = newtag.shift();
+               
+
+                if(curr.tagName.toLowerCase() !== currtag){
+                    return [];
+                }
+                else if(newtag.length == 0){    
+                    return [curr];
+                }
+
+                var children = curr.children;
+                for(var i = 0; i < children.length; i++){
+                    found = found.concat(childTags(children[i], newtag));
+                }
+                
+                return found;
+            }
+
+            identifier = identifier.split('.');
+            var ct = childTags(htmlScope, identifier);
+            return ct;
         }
     }
+}
+
+function find_html_children_element(curr, find){
+    return find_all_tree(htmlScope, identifier, 
+        function(curr, find){ return (curr === find ?  true :  false); },
+        function(curr){ return curr.children; },
+    false);
 }
 
 function find_html_children_class(curr, find){
     return find_all_tree(curr, find, 
         function(curr, find){ return (curr.class === find ?  true :  false); },
         function(curr){ return curr.children; },
-        false);
+    false);
 }
 
 function find_html_children_id(curr, find){
     return find_all_tree(curr, find, 
         function(curr, find){ return (curr.id === find ?  true :  false); },
         function(curr){ return curr.children; },
-        true);
+    true);
 }
 
 function find_all_tree(curr, find, comparefn, traversefn, unique){
