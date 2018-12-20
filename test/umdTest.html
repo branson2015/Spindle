@@ -19,22 +19,22 @@
   </body>
   <script>
     var obj = {
-      property1: 'testCHANGE',
+      property1: '1',
       property2: {
         property2_1: '2.1 CHANGE',
         property2_2: '2.2 CHANGE'
       },
-      property3: 'test'
+      property3: '3'
     }
 
     var element = document.getElementById("uniqueTest");
 
     Spindle(obj, element, {
-      property1: "#inputtext:value",
-      property2: {
+      property1: "#inputtext:value",    //not immune
+      property2: {                      //immune
         property2_2: "#2_2"
-      },    
-      'property2.property2_1' : '#2_1',
+      },
+      'property2.property2_1' : '#2_1',   //not immune
       property3: 'div.div.a'
     });
   </script>

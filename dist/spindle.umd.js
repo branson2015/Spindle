@@ -4,12 +4,11 @@
     global.Spindle = factory();
 }(typeof self !== 'undefined' ? self : this, function () { 'use strict';
 
-    /*
-    *obj: object with attributes in which to store data bindings in
-    *html: DOM html
-    *mapping: key-value pair from html to obj attributes
-    */
+    /*TODO: 1. arrays as property values
+            2. if property values aren't established in the object, have the object inherit the values already in the DOM
+            3. fix problem with wrong dom assigment
 
+    */
     /*
     example usage:
 
@@ -73,28 +72,38 @@
                 //get the html elements to which the value refers (will always return array)
                 var el = getElements(identifier, htmlScope);
 
-                //can be multiple HTML elements per object
+                //TODO: handle splitting property value up into array
                 var value = obj[key];
+
+                //can be multiple HTML elements per object
                 for(var i = 0; i < el.length; i++){
                     var e = el[i];
-                    e[type] = value;
+                    if(value !== undefined){
+                        e[type] = value;
+                    }else{
+                        obj[key] = value = e[type];
+                    }
 
                     //TODO: add eventlisteners for two way data binding, take care of circular setting
                     //element.addEventListener(event || 'input', oninput);
                     
                 }
-                Object.defineProperty(obj, key, {
-                    get: function(){
-                        return value;
-                    },
-                    set: function(v){
-                        for(var i = 0; i < el.length; i++){
-                            el[i][type] = value = v;
-                        }
-                    }
-                });
+                makeBind(obj, key, value, el, type);
                 
             }
+        }
+        function makeBind(obj, key, val, el, type){
+            var value = val;
+            Object.defineProperty(obj, key, {
+                get: function(){
+                    return value;
+                },
+                set: function(v){
+                    for(var i = 0; i < el.length; i++){
+                        el[i][type] = value = v;
+                    }
+                }
+            });
         }
 
         mapbind(obj, mapping);
@@ -128,11 +137,21 @@
                 //div.div.id.a stuff here
                 //THIS NEEDS TESTING
 
+
                 function childTags(curr, tag){
                     var found = [];
-                    var newtag = tag.slice();
+                    var newtag = tag.slice();   //makes a copy
                     var currtag = newtag.shift();
-                   
+
+                    var index = -1;
+                    var b_loc_s = currtag.indexOf('[');
+                    var b_loc_e = currtag.indexOf(']');
+                    if(b_loc_s != -1 ){
+                        if(b_lock_e != -1){
+                            index = parseInt(currtag.substr(b_loc_s, b_loc_e));
+                        }
+                        newtag = newtag.substr(0, b_loc_s);
+                    }
 
                     if(curr.tagName.toLowerCase() !== currtag){
                         return [];
@@ -142,16 +161,18 @@
                     }
 
                     var children = curr.children;
-                    for(var i = 0; i < children.length; i++){
-                        found = found.concat(childTags(children[i], newtag));
+                    if(index != -1){
+                        found = found.concat(childTags(children[index], newtag));
+                    }else{
+                        for(var i = 0; i < children.length; i++){
+                            found = found.concat(childTags(children[i], newtag));
+                        }
                     }
                     
                     return found;
                 }
 
-                identifier = identifier.split('.');
-                var ct = childTags(htmlScope, identifier);
-                return ct;
+                return childTags(htmlScope, identifier.split('.'));
             }
         }
     }
@@ -193,7 +214,6 @@
         }
 
         return found;
-
     }
 
     function isElement(o){
