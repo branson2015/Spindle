@@ -1,4 +1,4 @@
-
+//TODO: implement arrays or space separated values for values of mapping object
 /*
 example usage:
 
@@ -14,7 +14,15 @@ bind(obj, element, {
     }
 
     'p6': 'whatever:type' - :type signifies class, innerHTML, innerText, etc (what value to bind to, innerHTML by default)    
-    'p7.': function(){...} - will return string in form of previous versions
+    'p7': function(){...} - will return string in form of previous versions
+    
+    TODO:
+    'p8': ['#id1', '#id2']
+    'p9': '#id1 #id2'
+    'p10[n]': '#id'
+    p10: [
+        p10_1: '#id' --- same as 'p10[0].p10_1': '#id'
+    ]
 });
 
 */
@@ -25,27 +33,50 @@ export default function Bind(obj, htmlScope, mapping){
     function mapbind(obj, mapping){
         //for every mapping
         var origobj = obj;
-        for(var key in mapping){
+        for(var key in mapping){    //key will always be string (maybe put in test/error out if not string)
+            //reset obj to original object on each loop
             obj = origobj;
             
             var nestedKey = key.split('.');
+            
+            //TODO: make identifier able to be an array or space seperated values
+            var identifier = mapping[key];
+
+
             //if the key is an object
-            if(typeof mapping[key] !== 'string'){
-                mapbind(obj[key], mapping[key]);
+            if(typeof identifier !== 'string'){
+                mapbind(obj[key], identifier);
                 continue;
             }
-            //if the key is a string
-            else if(typeof mapping[key] === 'string'){
-                for(var i = 0; i < nestedKey.length-1; i++){
-                    obj = obj[nestedKey[i]];    //reset obj to be furthest nested element in to which key refers
+
+            //if the key's value is a string
+            else if(typeof identifier === 'string'){
+
+                for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
+                    var index = getIndex(nestedKey[i]);
+                    if(index == -1)
+                        obj = obj[nestedKey[i]];    //change obj to be one up from lowest lying element specified in map
+                    else{
+                        nestedKey[i] = nestedKey[i].substr(0, nestedKey[i].indexOf('['));
+                        obj = obj[nestedKey[i]][index];
+                    }
                 }
+            }else{
+                throw 'error';
             }
             
-            var identifier = mapping[key];
+
             //reset key to refer to last nested object (obj will refer to it as well at this point)
             key = nestedKey[nestedKey.length-1];
+
+            var index = getIndex(key);
+            if(index != -1)
+                key = key.substr(0, key.indexOf('['));
             
 
+            var value = obj[key];
+
+            //get the attribute of the HTML that we're modifying (div:className)
             var type
             if(typeof identifier === 'string'){
                 var colonloc = identifier.indexOf(':')
@@ -53,7 +84,7 @@ export default function Bind(obj, htmlScope, mapping){
                     type = identifier.substr(colonloc+1);
                     identifier = identifier.substr(0, colonloc);
                 }else{
-                    type = 'innerHTML';
+                    type = 'innerHTML'; //change this and other innerHTML to use a function to choose best default instead of always innerHTML
                 }
             }else{
                 type = 'innerHTML'
@@ -61,32 +92,39 @@ export default function Bind(obj, htmlScope, mapping){
 
             //get the html elements to which the value refers (will always return array)
             var el = getElements(identifier, htmlScope);
-    
-            //TODO: handle splitting property value up into array
-            var value = obj[key];
-
-            //TODO: add eventlisteners for two way data binding, take care of circular setting
-            //element.addEventListener(event || 'input', oninput);
-                
-
-            (function bindobj(obj, key, val, el, type){//has to be done inside it's own function so value is unique
+            
+            (function bindobj(obj, key, val, el, type, index){//has to be done inside it's own function so value is unique
                 var value = val;
-                if(value.constructor === Array){
-                    for(var i = 0; i < el.length; i++){
-                        if(!value[i])
-                            value.push(el[i][type]);
-                        bindobj(value, i, value[i], [el[i]], type);
+                if(value.constructor === Array){    //establish 1 to 1 binding
+                   
+                    if(index != -1){//if index specified, treat as single value
+                        if(!value[index])
+                            value[index] = undefined;
+                        bindobj(value, index, value[index], el, type);
+                    }else{
+                        for(var i = 0; i < el.length; i++){
+                            if(!value[i])
+                                value.push(el[i][type]);
+                            bindobj(value, i, value[i], [el[i]], type);
+                        }
                     }
+                    
                 }else{
                     //establish 1 to all binding
-                    
                     if(value !== undefined){
                         for(var i = 0; i < el.length; i++){
                             el[i][type] = value;
                         }
                     }else{
-                        obj[key] = value = undefined;
+                        if(el.length == 1)
+                            obj[key] = value = el[0][type];
+                        else
+                            obj[key] = value = undefined;
                     }
+
+                    //TODO: add eventlisteners for two way data binding, take care of circular setting
+                    //element.addEventListener(event || 'input', oninput);
+
                     Object.defineProperty(obj, key, {
                         get: function(){
                             return value;
@@ -98,7 +136,7 @@ export default function Bind(obj, htmlScope, mapping){
                         }
                     });
                 }
-            })(obj, key, value, el, type);
+            })(obj, key, value, el, type, index);
 
         }
     }
@@ -158,15 +196,9 @@ function getElements(identifier, htmlScope){
                 var newtag = tag.slice();   //makes a copy
                 var currtag = newtag.shift();
 
-                var index = -1;
-                var b_loc_s = currtag.indexOf('[');
-                var b_loc_e = currtag.indexOf(']');
-                if(b_loc_s != -1 ){
-                    if(b_lock_e != -1){
-                        index = parseInt(currtag.substr(b_loc_s, b_loc_e));
-                    }
-                    newtag = newtag.substr(0, b_loc_s);
-                }
+                var index = getIndex(currtag);
+                if(index != -1)
+                    currtag = currtag.substr(0, currtag.indexOf('['));
 
                 if(curr.tagName.toLowerCase() !== currtag){
                     return [];
@@ -231,6 +263,16 @@ function find_all_tree(curr, find, comparefn, traversefn, unique){
     }
 
     return found;
+}
+
+function getIndex(str){
+    var index = -1;
+    var b_loc_s = str.indexOf('[');
+    var b_loc_e = str.indexOf(']');
+    if(b_loc_s != -1 && b_loc_e  != -1){
+        index = parseInt(str.substr(b_loc_s + 1, b_loc_e - 1));
+    }
+    return index;
 }
 
 function isElement(o){
