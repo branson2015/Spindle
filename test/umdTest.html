@@ -9,8 +9,9 @@
       <input type="text" id="inputtext">
 
       <div id="2_1">2_1</div>
-      <div>2_1.5</div>
+      <strong><div><div>2_1.5</div></div></strong>
       <div id="2_2">2_2</div>
+      <div id="3">test</div>
 
     </div>
 
@@ -21,9 +22,13 @@
     var obj = {
       property: [
         'first test',
-        p1 = 'test',
+        'test',
         p2 = {
-          p2_1: 'test2_1'
+          p2_1: [
+            {
+              p2_4: undefined
+            }
+          ]
         }
       ]
     }
@@ -33,7 +38,7 @@
     Spindle(obj, element, {
       'property[0]': "#inputtext:value",
       'property[1]': "#2_1",
-      'property[2].p2_1': '#2_2'
+      'property[2].p2_1[0].p2_4': ['div.strong.div.div', '#3']
     });
   </script>
 </html>

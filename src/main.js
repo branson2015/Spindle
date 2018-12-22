@@ -5,6 +5,7 @@ example usage:
 var obj = {p1: 'val1', p2: 'val2', p3: ['val3.1', 'val3.2], p4: 'val4', p5: {p5-1: 'test', p5-2: 'test2'}};
 var element = document.getElementById("test");
 bind(obj, element, {
+    //THESE ARE MAPPING OBJECT EXAMPLES
     p1: 'div.div.ul.li[0].a',
     p2: '.classname[0]',
     p3: '.classname',           -p3 will be an array
@@ -27,8 +28,6 @@ bind(obj, element, {
 
 */
 export default function Bind(obj, htmlScope, mapping){
-    if(!this || this === window)
-        return new Bind(obj, htmlScope, mapping);
     
     function mapbind(obj, mapping){
         //for every mapping
@@ -40,84 +39,82 @@ export default function Bind(obj, htmlScope, mapping){
             var nestedKey = key.split('.');
             
             //TODO: make identifier able to be an array or space seperated values
-            var identifier = mapping[key];
+            var identifiers = mapping[key];
+            if(identifiers.constructor !== Array)
+                identifiers = identifiers.split(' ');
 
 
             //if the key is an object
-            if(typeof identifier !== 'string'){
-                mapbind(obj[key], identifier);
+            if(typeof /*identifier*/obj[key] === 'object'){//identifier is always an object now
+                mapbind(obj[key], identifiers);
                 continue;
             }
 
-            //if the key's value is a string
-            else if(typeof identifier === 'string'){
-
-                for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
-                    var index = getIndex(nestedKey[i]);
-                    if(index == -1)
-                        obj = obj[nestedKey[i]];    //change obj to be one up from lowest lying element specified in map
-                    else{
-                        nestedKey[i] = nestedKey[i].substr(0, nestedKey[i].indexOf('['));
-                        obj = obj[nestedKey[i]][index];
-                    }
+            for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
+                var index = getIndex(nestedKey[i]);
+                if(index == -1)
+                    obj = obj[nestedKey[i]];    //change obj to be one up from lowest lying element specified in map
+                else{
+                    nestedKey[i] = nestedKey[i].substr(0, nestedKey[i].indexOf('['));
+                    obj = obj[nestedKey[i]][index];
                 }
-            }else{
-                throw 'error';
             }
             
-
             //reset key to refer to last nested object (obj will refer to it as well at this point)
             key = nestedKey[nestedKey.length-1];
 
             var index = getIndex(key);
             if(index != -1)
                 key = key.substr(0, key.indexOf('['));
-            
-
-            var value = obj[key];
 
             //get the attribute of the HTML that we're modifying (div:className)
-            var type
-            if(typeof identifier === 'string'){
-                var colonloc = identifier.indexOf(':')
+            var els = [];
+            for(var i = 0; i < identifiers.length; i++){
+                var type;
+                var colonloc = identifiers[i].indexOf(':')
                 if(colonloc != -1){
-                    type = identifier.substr(colonloc+1);
-                    identifier = identifier.substr(0, colonloc);
+                    type = identifiers[i].substr(colonloc+1);
+                    identifiers[i] = identifiers[i].substr(0, colonloc);
                 }else{
                     type = 'innerHTML'; //change this and other innerHTML to use a function to choose best default instead of always innerHTML
                 }
-            }else{
-                type = 'innerHTML'
-            }
 
-            //get the html elements to which the value refers (will always return array)
-            var el = getElements(identifier, htmlScope);
+
+                els.push({'elements': getElements(identifiers[i], htmlScope), 'type': type});
+            }
             
-            (function bindobj(obj, key, val, el, type, index){//has to be done inside it's own function so value is unique
-                var value = val;
-                if(value.constructor === Array){    //establish 1 to 1 binding
+            (function bindobj(obj, key, els, index){//has to be done inside it's own function so value is unique
+                var value = obj[key];
+                if(value != undefined && value.constructor === Array){    //establish 1 to 1 binding
                    
-                    if(index != -1){//if index specified, treat as single value
+                    if(index != undefined && index != -1){//if index specified, treat as single value
                         if(!value[index])
                             value[index] = undefined;
-                        bindobj(value, index, value[index], el, type);
+                        bindobj(value, index, els);
                     }else{
-                        for(var i = 0; i < el.length; i++){
-                            if(!value[i])
-                                value.push(el[i][type]);
-                            bindobj(value, i, value[i], [el[i]], type);
+                        //could implement some sort of better checking/dynamic setting here maybe
+                        for(var i = 0; i < els.length; i++){
+                            var type = els[i].type;
+                            for(var j = 0; j < els[i].elements.length; j++){
+                                var el = els[i].elements[j];
+                                if(!value[i*els.length+j])
+                                    value.push(el[els[i].type]);//give default value
+                                bindobj(value, i, [{'elements': [el], 'type': type}] );
+                            }
                         }
                     }
                     
                 }else{
                     //establish 1 to all binding
                     if(value !== undefined){
-                        for(var i = 0; i < el.length; i++){
-                            el[i][type] = value;
+                        for(var i = 0; i < els.length; i++){
+                            for(var j = 0; j < els[i].elements.length; j++){
+                                els[i].elements[j][els[i].type] = value;
+                            }
                         }
                     }else{
-                        if(el.length == 1)
-                            obj[key] = value = el[0][type];
+                        if(els.length == 1 && els[0].elements.length == 1)
+                            obj[key] = value = els[0].elements[0][els[0].type];
                         else
                             obj[key] = value = undefined;
                     }
@@ -130,13 +127,15 @@ export default function Bind(obj, htmlScope, mapping){
                             return value;
                         },
                         set: function(v){
-                            for(var i = 0; i < el.length; i++){
-                                el[i][type] = value = v;
+                            for(var i = 0; i < els.length; i++){
+                                for(var j = 0; j < els[i].elements.length; j++){
+                                    els[i].elements[j][els[i].type] = value = v;
+                                }
                             }
                         }
                     });
                 }
-            })(obj, key, value, el, type, index);
+            })(obj, key, els, index);
 
         }
     }
