@@ -26,7 +26,7 @@
         p2 = {
           p2_1: [
             {
-              p2_4: undefined
+              p2_4: ['another test']
             }
           ]
         }
@@ -36,9 +36,16 @@
     var element = document.getElementById("uniqueTest");
 
     Spindle(obj, element, {
-      'property[0]': "#inputtext:value",
-      'property[1]': "#2_1",
-      'property[2].p2_1[0].p2_4': ['div.strong.div.div', '#3']
+      property: ["#2_1",
+        "#2_2",
+        {
+          p2_1: [
+            {
+              p2_4: "div.strong[0].div.div[0]"  //need to fix this
+            }
+          ]
+        }
+      ]
     });
   </script>
 </html>

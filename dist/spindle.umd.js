@@ -4,7 +4,14 @@
     global.Spindle = factory();
 }(typeof self !== 'undefined' ? self : this, function () { 'use strict';
 
-    //TODO: implement arrays or space separated values for values of mapping object
+    //TODO: fix childTags function
+    //allow multiple identifiers to be mixed into one statement
+    //Implement double data binding
+    //make get function that returns which element(s) the object is bound to
+    //auxillary helper unbind/rebind management functions
+    //default attribute modifying function
+    //make different ways of binding function (auto create object, make window the htmlScope, etc)
+
     /*
     example usage:
 
@@ -24,38 +31,37 @@
         'p7': function(){...} - will return string in form of previous versions
         
         TODO:
-        'p8': ['#id1', '#id2']
-        'p9': '#id1 #id2'
+        'p8': ['#id1', '#id2'] ---equivalent to below
+        'p9': '#id1 #id2'      ---equivalent to above
         'p10[n]': '#id'
         p10: [
             p10_1: '#id' --- same as 'p10[0].p10_1': '#id'
         ]
     });
 
+    //TODO: consider passing to-be-changed objects in parameters as single-element arrays
+
     */
     function Bind(obj, htmlScope, mapping){
         
-        function mapbind(obj, mapping){
+        (function mapbind(object, mapping){
             //for every mapping
-            var origobj = obj;
             for(var key in mapping){    //key will always be string (maybe put in test/error out if not string)
                 //reset obj to original object on each loop
-                obj = origobj;
+                var obj = object;
                 
-                var nestedKey = key.split('.');
-                
-                //TODO: make identifier able to be an array or space seperated values
                 var identifiers = mapping[key];
-                if(identifiers.constructor !== Array)
+                if(typeof identifiers === 'string')
                     identifiers = identifiers.split(' ');
 
 
                 //if the key is an object
-                if(typeof /*identifier*/obj[key] === 'object'){//identifier is always an object now
+                if(typeof obj[key] === 'object'){//identifier is always an object now
                     mapbind(obj[key], identifiers);
                     continue;
                 }
 
+                var nestedKey = key.split('.');
                 for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
                     var index = getIndex(nestedKey[i]);
                     if(index == -1)
@@ -84,8 +90,6 @@
                     }else{
                         type = 'innerHTML'; //change this and other innerHTML to use a function to choose best default instead of always innerHTML
                     }
-
-
                     els.push({'elements': getElements(identifiers[i], htmlScope), 'type': type});
                 }
                 
@@ -94,35 +98,30 @@
                     if(value != undefined && value.constructor === Array){    //establish 1 to 1 binding
                        
                         if(index != undefined && index != -1){//if index specified, treat as single value
-                            if(!value[index])
-                                value[index] = undefined;
-                            bindobj(value, index, els);
+                            bindobj(value, index, els, undefined);
                         }else{
                             //could implement some sort of better checking/dynamic setting here maybe
                             for(var i = 0; i < els.length; i++){
-                                var type = els[i].type;
                                 for(var j = 0; j < els[i].elements.length; j++){
                                     var el = els[i].elements[j];
                                     if(!value[i*els.length+j])
                                         value.push(el[els[i].type]);//give default value
-                                    bindobj(value, i, [{'elements': [el], 'type': type}] );
+                                    bindobj(value, i, [{'elements': [el], 'type': els[i].type}], undefined);
                                 }
                             }
                         }
-                        
                     }else{
                         //establish 1 to all binding
                         if(value !== undefined){
-                            for(var i = 0; i < els.length; i++){
-                                for(var j = 0; j < els[i].elements.length; j++){
+                            for(var i = 0; i < els.length; i++)
+                                for(var j = 0; j < els[i].elements.length; j++)
                                     els[i].elements[j][els[i].type] = value;
-                                }
-                            }
+
                         }else{
-                            if(els.length == 1 && els[0].elements.length == 1)
-                                obj[key] = value = els[0].elements[0][els[0].type];
+                            if(els.length == 1 && els[0].elements.length == 1)  //only one element total
+                                value = els[0].elements[0][els[0].type];
                             else
-                                obj[key] = value = undefined;
+                                value = undefined;
                         }
 
                         //TODO: add eventlisteners for two way data binding, take care of circular setting
@@ -133,24 +132,18 @@
                                 return value;
                             },
                             set: function(v){
-                                for(var i = 0; i < els.length; i++){
-                                    for(var j = 0; j < els[i].elements.length; j++){
-                                        els[i].elements[j][els[i].type] = value = v;
-                                    }
-                                }
+                                value = v;
+                                for(var i = 0; i < els.length; i++)
+                                    for(var j = 0; j < els[i].elements.length; j++)
+                                        els[i].elements[j][els[i].type] = v;
                             }
                         });
                     }
                 })(obj, key, els, index);
 
             }
-        }
-
-        mapbind(obj, mapping);
-        return this; //don't need to do this, but why not. this.whatever is never even set anywhere.
+        })(obj, mapping);
     }
-    //end of not currently used
-
 
     function getElements(identifier, htmlScope){
 
@@ -165,50 +158,92 @@
         }
         
         else if(typeof identifier === 'string'){
+
             //find ID's inside of htmlScope element
-            if(identifier[0] === '#'){
+            if(identifier[0] === '#')
                 return find_html_children_id(htmlScope, identifier.substr(1));
-            }
+
             //find classes inside of htmlScope element
-            else if(identifier[0] === '.'){
+            else if(identifier[0] === '.')
                 return find_html_children_class(htmlScope, identifier.substr(1));
+                
             //find elements specified by string inside of htmlScope element
-            }else{
-                //div.div.id.a stuff here
-                //THIS NEEDS TESTING
+            else{
 
+                //remove the first element, as it is an exception
+                identifier = identifier.split('.');
+                var first = identifier.shift();
+                var i = getIndex(first);
+                if(i != -1)
+                    first = first.substr(0, first.indexOf('['));
 
-                function childTags(curr, tag){
-                    var found = [];
-                    var newtag = tag.slice();   //makes a copy
-                    var currtag = newtag.shift();
+                //make sure the first element refers to the correct element and index, if not, return
+                if(i > 0 || htmlScope.tagName.toLowerCase() !== first)  return [];
 
-                    var index = getIndex(currtag);
-                    if(index != -1)
-                        currtag = currtag.substr(0, currtag.indexOf('['));
+                //if this is the only element referred to, just return it
+                else if(identifier.length == 0) return [htmlScope];
 
-                    if(curr.tagName.toLowerCase() !== currtag){
-                        return [];
-                    }
-                    else if(newtag.length == 0){    
-                        return [curr];
-                    }
-
-                    var children = curr.children;
-                    if(index != -1){
-                        found = found.concat(childTags(children[index], newtag));
-                    }else{
-                        for(var i = 0; i < children.length; i++){
-                            found = found.concat(childTags(children[i], newtag));
-                        }
-                    }
-                    
-                    return found;
-                }
-
-                return childTags(htmlScope, identifier.split('.'));
+                //else, find the referred-to subelements
+                return childTags(htmlScope, identifier);
             }
         }
+    }
+
+    //maybe make this function more clear by dividing out the base case
+    function childTags(curr, tag){
+        //div.div.id.a stuff here
+
+        var found = [];
+        var currtag = tag.shift();
+
+        var index = getIndex(currtag);
+        if(index != -1)
+            currtag = currtag.substr(0, currtag.indexOf('['));
+
+        if(index != -1){
+            //recurse/return on indexed element
+            var element = find_html_index(curr, index, currtag);
+
+            if(tag.length == 0)
+                return [element]
+            else
+                found = found.concat(childTags(element, tag));
+        }else{
+            //recurse/return all child elements
+
+            var elements = [];
+            for(var i = 0; i < curr.children.length; i++)
+                if(curr.children[i].tagName.toLowerCase() === currtag)
+                    elements.push(curr.children[i]);
+
+            if(tag.length == 0){
+                return elements;
+            }else{
+                for(var i = 0; i < elements.length; i++){
+                    found = found.concat(childTags(elements[i], tag));
+                }
+            }
+        }
+
+        return found;
+    }
+
+    function find_html_index(parent, index, tagname){
+        if(index < 0 || index === undefined) return;
+
+        var siblings = parent.children;
+        var el = undefined;
+        for(var i = 0; i < siblings.length; i++){
+            if(siblings[i].tagName.toLowerCase() === tagname){
+                if(--index < 0){ 
+                    el = siblings[i];
+                    break;
+                }
+            }
+        }
+        if(el === undefined)    throw 'error, element does not exist';
+        
+        return el;
     }
 
     function find_html_children_element(curr, find){
@@ -220,7 +255,7 @@
 
     function find_html_children_class(curr, find){
         return find_all_tree(curr, find, 
-            function(curr, find){ return (curr.class === find ?  true :  false); },
+            function(curr, find){ return (curr.className === find ?  true :  false); },
             function(curr){ return curr.children; },
         false);
     }
@@ -233,7 +268,7 @@
     }
 
     function find_all_tree(curr, find, comparefn, traversefn, unique){
-        unique = unique || false;
+        unique = !!unique;
 
         var found = [];
 
@@ -245,7 +280,7 @@
         var children = traversefn(curr);
         for(var i = 0; i < children.length; i++){
             var child = children[i];
-            found = found.concat(find_all_tree(child, find, comparefn, traversefn));
+            found = found.concat(find_all_tree(child, find, comparefn, traversefn, unique));
             if(unique && found.length > 0) return found; 
         }
 
@@ -256,9 +291,8 @@
         var index = -1;
         var b_loc_s = str.indexOf('[');
         var b_loc_e = str.indexOf(']');
-        if(b_loc_s != -1 && b_loc_e  != -1){
-            index = parseInt(str.substr(b_loc_s + 1, b_loc_e - 1));
-        }
+        if(b_loc_s != -1 && b_loc_e  != -1)
+            index = parseInt(str.substr(b_loc_s + 1, b_loc_e - 1), 10);
         return index;
     }
 
