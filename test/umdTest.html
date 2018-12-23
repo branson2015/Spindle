@@ -11,7 +11,9 @@
       <div id="2_1">2_1</div>
       <strong class = 'ok'><div><div>2_1.5</div></div></strong>
       <div id="2_2">2_2</div>
-      <div id="3">test</div>
+      <div id="2_3">2.3</div>
+      <div id="3">3</div>
+      <div id="4">4</div>
 
     </div>
 
@@ -21,12 +23,10 @@
   <script>
     var obj = {
       property: [
-        'first test',
-        'test',
         p2 = {
           p2_1: [
             {
-              p2_4: ['another test']
+              p2_4: 'another test'
             }
           ]
         }
@@ -36,12 +36,12 @@
     var element = document.getElementById("uniqueTest");
 
     Spindle(obj, element, {
-      property: ["#2_1",
-        "#2_2",
+      property: [//"#2_1",
+        //"#2_2",
         {
           p2_1: [
             {
-              p2_4: ".ok.div.div[0]"  //need to fix this
+              p2_4: [document.getElementById("3"), function(){return '#4'}]
             }
           ]
         }

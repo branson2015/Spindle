@@ -46,7 +46,7 @@ export default function Bind(obj, htmlScope, mapping){
             var identifiers = mapping[key];
             if(typeof identifiers === 'string')
                 identifiers = identifiers.split(' ');
-            else if(typeof identifiers !== 'object' && identifiers.constructor !== Array)
+            else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion
                 identifiers = [identifiers];
 
             //if the key is an object
@@ -54,6 +54,9 @@ export default function Bind(obj, htmlScope, mapping){
                 mapbind(obj[key], identifiers);
                 continue;
             }
+
+            if(identifiers.constructor !== Array)   //now change object to make sure it is an array
+                identifiers = [identifiers];
 
             var nestedKey = key.split('.');
             for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
@@ -73,18 +76,34 @@ export default function Bind(obj, htmlScope, mapping){
             if(index != -1)
                 key = key.substr(0, key.indexOf('['));
 
+            identifiers = parseIdentifiers(identifiers);
+
             //get the attribute of the HTML that we're modifying (div:className)
             var els = [];
             for(var i = 0; i < identifiers.length; i++){
-                var type;
-                var colonloc = identifiers[i].indexOf(':')
-                if(colonloc != -1){
-                    type = identifiers[i].substr(colonloc+1);
-                    identifiers[i] = identifiers[i].substr(0, colonloc);
-                }else{
-                    type = 'innerHTML'; //change this and other innerHTML to use a function to choose best default instead of always innerHTML
+                var id = identifiers[i];
+                var type = undefined;
+                if(typeof id === 'string'){
+                    var colonloc = id.indexOf(':')
+                    if(colonloc != -1){
+                        type = id.substr(colonloc+1);
+                        id = id.substr(0, colonloc);
+                    }
+                }else if(typeof id === 'object'){
+                    if(id.type !== undefined && id.element !== undefined){
+                        type = id.type;
+                        id = id.element;
+                    }else if(id.type !== undefined && id.fn !== undefined){
+                        type = id.type;
+                        id = id.fn();
+                    }else if(!isElement(id)){
+                        throw 'error'
+                    }
+                }else if(typeof id === 'function'){
+                    id = id();
                 }
-                els.push({'elements': getElements(identifiers[i], htmlScope), 'type': type});
+                if(type === undefined)  type = 'innerHTML';//change this and other innerHTML to use a function to choose best default instead of always innerHTML
+                els.push({'elements': getElements(id, htmlScope), 'type': type});
             }
             
             (function bindobj(obj, key, els, index){//has to be done inside it's own function so value is unique
@@ -137,6 +156,17 @@ export default function Bind(obj, htmlScope, mapping){
 
         }
     })(obj, mapping);
+}
+
+function parseIdentifiers(identifiers){
+    var newids = [];
+    for(var i = 0; i < identifiers.length; i++){
+        if(typeof identifiers[i] === 'string')
+            newids = newids.concat(identifiers[i].split(' '));
+        else
+            newids.push(identifiers[i]);
+    }
+    return newids
 }
 
 function getElements(identifier, htmlScope){
@@ -252,7 +282,7 @@ function find_html_index(parent, index, tagname){
 }
 
 function find_html_children_element(curr, find){
-    return find_all_tree(htmlScope, identifier, 
+    return find_all_tree(curr, find, 
         function(curr, find){ return (curr === find ?  true :  false); },
         function(curr){ return curr.children; },
     false);
