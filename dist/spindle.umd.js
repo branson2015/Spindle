@@ -4,8 +4,7 @@
     global.Spindle = factory();
 }(typeof self !== 'undefined' ? self : this, function () { 'use strict';
 
-    //TODO: allow multiple TEXT identifiers to be mixed into one statement
-    //allow binding array to contain ALL types of binds (will need to be parsed)
+    //TODO: allow binding array to contain ALL types of binds (will need to be parsed)
     //Implement double data binding
     //make get function that returns which element(s) the object is bound to
     //auxillary helper unbind/rebind management functions
@@ -188,7 +187,6 @@
                 else if(identifier.length == 0) return [htmlScope];
 
                 scopes = [htmlScope];
-
             }
 
             if(identifier.length == 0)  return scopes;
