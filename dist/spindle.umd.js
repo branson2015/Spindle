@@ -4,8 +4,8 @@
     global.Spindle = factory();
 }(typeof self !== 'undefined' ? self : this, function () { 'use strict';
 
-    //TODO: fix childTags function
-    //allow multiple identifiers to be mixed into one statement
+    //TODO: allow multiple TEXT identifiers to be mixed into one statement
+    //allow binding array to contain ALL types of binds (will need to be parsed)
     //Implement double data binding
     //make get function that returns which element(s) the object is bound to
     //auxillary helper unbind/rebind management functions
@@ -53,7 +53,8 @@
                 var identifiers = mapping[key];
                 if(typeof identifiers === 'string')
                     identifiers = identifiers.split(' ');
-
+                else if(typeof identifiers !== 'object' && identifiers.constructor !== Array)
+                    identifiers = [identifiers];
 
                 //if the key is an object
                 if(typeof obj[key] === 'object'){//identifier is always an object now
@@ -159,19 +160,22 @@
         
         else if(typeof identifier === 'string'){
 
+            var scopes;
+            
+            identifier = identifier.split('.');
+
             //find ID's inside of htmlScope element
-            if(identifier[0] === '#')
-                return find_html_children_id(htmlScope, identifier.substr(1));
+            if(identifier[0][0] === '#'){
+                scopes = find_html_children_id(htmlScope, identifier[0].substr(1));
+                identifier.splice(0,1);
+            }
 
             //find classes inside of htmlScope element
-            else if(identifier[0] === '.')
-                return find_html_children_class(htmlScope, identifier.substr(1));
-                
-            //find elements specified by string inside of htmlScope element
-            else{
-
-                //remove the first element, as it is an exception
-                identifier = identifier.split('.');
+            else if(identifier[0][0] === undefined){
+                scopes = find_html_children_class(htmlScope, identifier[1]);
+                identifier.splice(0,2);
+            }else{
+                //find elements specified by string inside of htmlScope element
                 var first = identifier.shift();
                 var i = getIndex(first);
                 if(i != -1)
@@ -183,9 +187,18 @@
                 //if this is the only element referred to, just return it
                 else if(identifier.length == 0) return [htmlScope];
 
-                //else, find the referred-to subelements
-                return childTags(htmlScope, identifier);
+                scopes = [htmlScope];
+
             }
+
+            if(identifier.length == 0)  return scopes;
+            
+            var elements = [];
+            for(var i = 0; i < scopes.length; i++){
+                elements = elements.concat(childTags(scopes[i], identifier));
+            }
+
+            return elements;
         }
     }
 
@@ -242,7 +255,7 @@
             }
         }
         if(el === undefined)    throw 'error, element does not exist';
-        
+
         return el;
     }
 
