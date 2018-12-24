@@ -1,5 +1,4 @@
-//TODO: run update so all wrap-bound objects update together
-//make get function that returns which element(s) the object is bound to
+//TODO: make get function that returns which element(s) the object is bound to
 //auxillary helper unbind/rebind management functions
 //default attribute modifying function
 //make different ways of binding function (auto create object, make window the htmlScope, etc)
@@ -90,7 +89,7 @@ export default function Bind(obj, htmlScope, mapping){
                         type = id.substr(colonloc+1);
                         id = id.substr(0, colonloc);
                     }
-                }else if(typeof id === 'object'){   //need to fix this, objects by default are recursed and taken out of object form, need to look for type and element to know it's not a normal obj
+                }else if(typeof id === 'object'){
                     if(id.type !== undefined && id.element !== undefined){
                         type = id.type;
                         id = id.element;
@@ -140,7 +139,9 @@ export default function Bind(obj, htmlScope, mapping){
 
                     Object.defineProperty(obj, key, {
                         get: function(){
-                            return els[0].elements[0][els[0].type];
+                            var rval = els[0].elements[0][els[0].type];
+                            obj[key] = rval; //calls set function to update all other wrap-bound objects
+                            return rval; //can't return obj[key] here or else recursion
                         },
                         set: function(v){
                             value = v;
