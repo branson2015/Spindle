@@ -5,7 +5,7 @@
   </head>
   <body>
 
-    <div class="test" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">
+    <div class="" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">
       <input type="text" id="inputtext">
 
       <div id="2_1">2_1</div>
@@ -23,6 +23,8 @@
   <script>
     var obj = {
       property: [
+        'test',
+        'test2',
         p2 = {
           p2_1: [
             {
@@ -36,12 +38,12 @@
     var element = document.getElementById("uniqueTest");
 
     Spindle(obj, element, {
-      property: [//"#2_1",
-        //"#2_2",
+      property: ["div.input:value",
+        "#2_2",
         {
           p2_1: [
             {
-              p2_4: [document.getElementById("3"), function(){return '#4'}]
+              p2_4: [{'type': 'innerHTML', 'element': document.getElementById("3")}]
             }
           ]
         }

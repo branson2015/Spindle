@@ -1,5 +1,4 @@
-//TODO: allow binding array to contain ALL types of binds (will need to be parsed)
-//Implement double data binding
+//TODO: run update so all wrap-bound objects update together
 //make get function that returns which element(s) the object is bound to
 //auxillary helper unbind/rebind management functions
 //default attribute modifying function
@@ -30,6 +29,7 @@ bind(obj, element, {
     p10: [
         p10_1: '#id' --- same as 'p10[0].p10_1': '#id'
     ]
+    p11: {type: 'className', fn: function}
 });
 
 //TODO: consider passing to-be-changed objects in parameters as single-element arrays
@@ -46,7 +46,7 @@ export default function Bind(obj, htmlScope, mapping){
             var identifiers = mapping[key];
             if(typeof identifiers === 'string')
                 identifiers = identifiers.split(' ');
-            else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion
+            else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion (also includes arrays)
                 identifiers = [identifiers];
 
             //if the key is an object
@@ -54,6 +54,7 @@ export default function Bind(obj, htmlScope, mapping){
                 mapbind(obj[key], identifiers);
                 continue;
             }
+           
 
             if(identifiers.constructor !== Array)   //now change object to make sure it is an array
                 identifiers = [identifiers];
@@ -89,7 +90,7 @@ export default function Bind(obj, htmlScope, mapping){
                         type = id.substr(colonloc+1);
                         id = id.substr(0, colonloc);
                     }
-                }else if(typeof id === 'object'){
+                }else if(typeof id === 'object'){   //need to fix this, objects by default are recursed and taken out of object form, need to look for type and element to know it's not a normal obj
                     if(id.type !== undefined && id.element !== undefined){
                         type = id.type;
                         id = id.element;
@@ -137,12 +138,9 @@ export default function Bind(obj, htmlScope, mapping){
                             value = undefined;
                     }
 
-                    //TODO: add eventlisteners for two way data binding, take care of circular setting
-                    //element.addEventListener(event || 'input', oninput);
-
                     Object.defineProperty(obj, key, {
                         get: function(){
-                            return value;
+                            return els[0].elements[0][els[0].type];
                         },
                         set: function(v){
                             value = v;

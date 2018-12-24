@@ -4,8 +4,7 @@
     global.Spindle = factory();
 }(typeof self !== 'undefined' ? self : this, function () { 'use strict';
 
-    //TODO: allow binding array to contain ALL types of binds (will need to be parsed)
-    //Implement double data binding
+    //TODO:
     //make get function that returns which element(s) the object is bound to
     //auxillary helper unbind/rebind management functions
     //default attribute modifying function
@@ -36,6 +35,7 @@
         p10: [
             p10_1: '#id' --- same as 'p10[0].p10_1': '#id'
         ]
+        p11: {type: 'className', fn: function}
     });
 
     //TODO: consider passing to-be-changed objects in parameters as single-element arrays
@@ -52,7 +52,7 @@
                 var identifiers = mapping[key];
                 if(typeof identifiers === 'string')
                     identifiers = identifiers.split(' ');
-                else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion
+                else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion (also includes arrays)
                     identifiers = [identifiers];
 
                 //if the key is an object
@@ -60,6 +60,7 @@
                     mapbind(obj[key], identifiers);
                     continue;
                 }
+               
 
                 if(identifiers.constructor !== Array)   //now change object to make sure it is an array
                     identifiers = [identifiers];
@@ -95,7 +96,7 @@
                             type = id.substr(colonloc+1);
                             id = id.substr(0, colonloc);
                         }
-                    }else if(typeof id === 'object'){
+                    }else if(typeof id === 'object'){   //need to fix this, objects by default are recursed and taken out of object form, need to look for type and element to know it's not a normal obj
                         if(id.type !== undefined && id.element !== undefined){
                             type = id.type;
                             id = id.element;
@@ -143,12 +144,10 @@
                                 value = undefined;
                         }
 
-                        //TODO: add eventlisteners for two way data binding, take care of circular setting
-                        //element.addEventListener(event || 'input', oninput);
-
                         Object.defineProperty(obj, key, {
-                            get: function(){
-                                return value;
+                            get: function(){console.log('test');
+                                return els[0].elements[0][els[0].type];
+                                
                             },
                             set: function(v){
                                 value = v;
