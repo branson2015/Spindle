@@ -30,131 +30,135 @@ bind(obj, element, {
     ]
     p11: {type: 'className', fn: function}
 });
-
-//TODO: consider passing to-be-changed objects in parameters as single-element arrays
-
 */
-export default function Bind(obj, htmlScope, mapping){
-    
-    (function mapbind(object, mapping){
-        //for every mapping
-        for(var key in mapping){    //key will always be string (maybe put in test/error out if not string)
-            //reset obj to original object on each loop
-            var obj = object;
-            
-            var identifiers = mapping[key];
-            if(typeof identifiers === 'string')
-                identifiers = identifiers.split(' ');
-            else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion (also includes arrays)
-                identifiers = [identifiers];
 
-            //if the key is an object
-            if(typeof obj[key] === 'object'){//identifier is always an object now
-                mapbind(obj[key], identifiers);
-                continue;
-            }
-           
+export var UnBind = {};
 
-            if(identifiers.constructor !== Array)   //now change object to make sure it is an array
-                identifiers = [identifiers];
+export default function Bind(object, htmlScope, mapping){
+    //for every mapping
+    for(var key in mapping){    //key will always be string (maybe put in test/error out if not string)
+        //reset obj to original object on each loop
+        var obj = object;
+        
+        var identifiers = mapping[key];
+        if(typeof identifiers === 'string')
+            identifiers = identifiers.split(' ');
+        else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion (also includes arrays)
+            identifiers = [identifiers];
 
-            var nestedKey = key.split('.');
-            for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
-                var index = getIndex(nestedKey[i]);
-                if(index == -1)
-                    obj = obj[nestedKey[i]];    //change obj to be one up from lowest lying element specified in map
-                else{
-                    nestedKey[i] = nestedKey[i].substr(0, nestedKey[i].indexOf('['));
-                    obj = obj[nestedKey[i]][index];
-                }
-            }
-            
-            //reset key to refer to last nested object (obj will refer to it as well at this point)
-            key = nestedKey[nestedKey.length-1];
-
-            var index = getIndex(key);
-            if(index != -1)
-                key = key.substr(0, key.indexOf('['));
-
-            identifiers = parseIdentifiers(identifiers);
-
-            //get the attribute of the HTML that we're modifying (div:className)
-            var els = [];
-            for(var i = 0; i < identifiers.length; i++){
-                var id = identifiers[i];
-                var type = undefined;
-                if(typeof id === 'string'){
-                    var colonloc = id.indexOf(':')
-                    if(colonloc != -1){
-                        type = id.substr(colonloc+1);
-                        id = id.substr(0, colonloc);
-                    }
-                }else if(typeof id === 'object'){
-                    if(id.type !== undefined && id.element !== undefined){
-                        type = id.type;
-                        id = id.element;
-                    }else if(id.type !== undefined && id.fn !== undefined){
-                        type = id.type;
-                        id = id.fn();
-                    }else if(!isElement(id)){
-                        throw 'error'
-                    }
-                }else if(typeof id === 'function'){
-                    id = id();
-                }
-                if(type === undefined)  type = 'innerHTML';//change this and other innerHTML to use a function to choose best default instead of always innerHTML
-                els.push({'elements': getElements(id, htmlScope), 'type': type});
-            }
-            
-            (function bindobj(obj, key, els, index){//has to be done inside it's own function so value is unique
-                var value = obj[key];
-                if(value != undefined && value.constructor === Array){    //establish 1 to 1 binding
-                   
-                    if(index != undefined && index != -1){//if index specified, treat as single value
-                        bindobj(value, index, els, undefined);
-                    }else{
-                        //could implement some sort of better checking/dynamic setting here maybe
-                        for(var i = 0; i < els.length; i++){
-                            for(var j = 0; j < els[i].elements.length; j++){
-                                var el = els[i].elements[j];
-                                if(!value[i*els.length+j])
-                                    value.push(el[els[i].type]);//give default value
-                                bindobj(value, i, [{'elements': [el], 'type': els[i].type}], undefined);
-                            }
-                        }
-                    }
-                }else{
-                    //establish 1 to all binding
-                    if(value !== undefined){
-                        for(var i = 0; i < els.length; i++)
-                            for(var j = 0; j < els[i].elements.length; j++)
-                                els[i].elements[j][els[i].type] = value;
-
-                    }else{
-                        if(els.length == 1 && els[0].elements.length == 1)  //only one element total
-                            value = els[0].elements[0][els[0].type];
-                        else
-                            value = undefined;
-                    }
-
-                    Object.defineProperty(obj, key, {
-                        get: function(){
-                            var rval = els[0].elements[0][els[0].type];
-                            obj[key] = rval; //calls set function to update all other wrap-bound objects
-                            return rval; //can't return obj[key] here or else recursion
-                        },
-                        set: function(v){
-                            value = v;
-                            for(var i = 0; i < els.length; i++)
-                                for(var j = 0; j < els[i].elements.length; j++)
-                                    els[i].elements[j][els[i].type] = v;
-                        }
-                    });
-                }
-            })(obj, key, els, index);
-
+        //if the key is an object
+        if(typeof obj[key] === 'object'){//identifier is always an object now
+            Bind(obj[key], htmlScope, identifiers);
+            continue;
         }
-    })(obj, mapping);
+        
+        if(identifiers.constructor !== Array)   //now change object to make sure it is an array
+            identifiers = [identifiers];
+
+        var nestedKey = key.split('.');
+        for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
+            var index = getIndex(nestedKey[i]);
+            if(index == -1)
+                obj = obj[nestedKey[i]];    //change obj to be one up from lowest lying element specified in map
+            else{
+                nestedKey[i] = nestedKey[i].substr(0, nestedKey[i].indexOf('['));
+                obj = obj[nestedKey[i]][index];
+            }
+        }
+        
+        //reset key to refer to last nested object (obj will refer to it as well at this point)
+        key = nestedKey[nestedKey.length-1];
+
+        var index = getIndex(key);
+        if(index != -1)
+            key = key.substr(0, key.indexOf('['));
+
+        identifiers = parseIdentifiers(identifiers);
+
+        //get the attribute of the HTML that we're modifying (div:className)
+        var els = [];
+        for(var i = 0; i < identifiers.length; i++){
+            var id = identifiers[i];
+            var type = undefined;
+            if(typeof id === 'string'){
+                var colonloc = id.indexOf(':')
+                if(colonloc != -1){
+                    type = id.substr(colonloc+1);
+                    id = id.substr(0, colonloc);
+                }
+            }else if(typeof id === 'object'){
+                if(id.type !== undefined && id.element !== undefined){
+                    type = id.type;
+                    id = id.element;
+                }else if(id.type !== undefined && id.fn !== undefined){
+                    type = id.type;
+                    id = id.fn();
+                }else if(!isElement(id)){
+                    throw 'error'
+                }
+            }else if(typeof id === 'function'){
+                id = id();
+            }
+            if(type === undefined)  type = 'innerHTML';//change this and other innerHTML to use a function to choose best default instead of always innerHTML
+            els.push({'elements': getElements(id, htmlScope), 'type': type});
+        }
+        bindobj(obj, key, els, index);
+    }
+}
+
+function bindobj(obj, key, els, index){//has to be done inside it's own function so value is unique
+    var value = obj[key];
+   
+    if(value !== undefined && value.constructor === Array){    //establish 1 to 1 binding
+        
+        if(index != undefined && index != -1){//if index specified, treat as single value
+            bindobj(value, index, els, undefined);
+        }else{ //could implement some sort of better checking/dynamic setting here maybe
+            for(var i = 0; i < els.length; i++){
+                for(var j = 0; j < els[i].elements.length; j++){
+                    var el = els[i].elements[j];
+                    if(!value[i*els.length+j])
+                        value.push(el[els[i].type]);//give default value
+                    bindobj(value, i, [{'elements': [el], 'type': els[i].type}], undefined);
+        }}}
+    }else{
+        //establish 1 to all binding
+        if(value !== undefined){
+            for(var i = 0; i < els.length; i++)
+                for(var j = 0; j < els[i].elements.length; j++)
+                    els[i].elements[j][els[i].type] = value;
+
+        }else{ 
+            if(els.length == 1 && els[0].elements.length == 1){  //only one element total
+                value = els[0].elements[0][els[0].type];
+            }else
+                value = undefined;
+        }
+
+
+
+        //set events to fire here onchange
+
+        Object.defineProperty(obj, key, {
+            get: function(){
+                var rval = els[0].elements[0][els[0].type];
+                obj[key] = rval; //calls set function to update all other wrap-bound objects
+                return rval; //can't return obj[key] here or else recursion
+                
+            },
+            set: function(v){
+                if(v === UnBind){
+                    delete obj[key];
+                    obj[key] = value;
+                    return;
+                }
+                value = v;
+                for(var i = 0; i < els.length; i++)
+                    for(var j = 0; j < els[i].elements.length; j++)
+                        els[i].elements[j][els[i].type] = v;
+            },
+        });
+    }
 }
 
 function parseIdentifiers(identifiers){

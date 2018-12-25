@@ -6,7 +6,7 @@
   <body>
 
     <div class="" id="uniqueTest" style="background-color: red; height: 100px; width: 100px;">
-      <input type="text" id="inputtext">
+      <input type="text" value='initial' id="inputtext">
 
       <div id="2_1">2_1</div>
       <strong class = 'ok'><div><div>2_1.5</div></div></strong>
@@ -21,33 +21,12 @@
 
   </body>
   <script>
-    var obj = {
-      property: [
-        'test',
-        'test2',
-        p2 = {
-          p2_1: [
-            {
-              p2_4: 'another test'
-            }
-          ]
-        }
-      ]
-    }
+    var obj = {property: []}
 
     var element = document.getElementById("uniqueTest");
 
-    Spindle(obj, element, {
-      property: ["div.input:value",
-        "#2_2",
-        {
-          p2_1: [
-            {
-              p2_4: [{'type': 'innerHTML', 'element': document.getElementById("3")}]
-            }
-          ]
-        }
-      ]
+    Spindle.default(obj, element, {
+      property: "#inputtext:value #2_2 #2_3 #3"
     });
   </script>
 </html>
