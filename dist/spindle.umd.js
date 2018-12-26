@@ -5,8 +5,6 @@
 }(typeof self !== 'undefined' ? self : this, function (exports) { 'use strict';
 
    //TODO: make get function that returns which element(s) the object is bound to
-   //auxillary helper unbind/rebind management functions
-   //default attribute modifying function
    //make different ways of binding function (auto create object, make window the htmlScope, etc)
 
    /*
@@ -26,8 +24,7 @@
 
        'p6': 'whatever:type' - :type signifies class, innerHTML, innerText, etc (what value to bind to, innerHTML by default)    
        'p7': function(){...} - will return string in form of previous versions
-       
-       TODO:
+
        'p8': ['#id1', '#id2'] ---equivalent to below
        'p9': '#id1 #id2'      ---equivalent to above
        'p10[n]': '#id'
@@ -38,7 +35,28 @@
    });
    */
 
-   var UnBind = {};
+   function UnBind(object){
+       if(object === undefined){
+           if(!(this instanceof UnBind))
+               return new UnBind(undefined);
+           return;
+       }
+       for(var property in object){
+           if(typeof object[property] === 'object'){
+               UnBind(object[property]);
+               continue;
+           }else{
+               object[property] = UnBind(undefined);
+           }
+       }
+   }
+
+   function ReBind(identifiers){
+       if(!(this instanceof ReBind))
+           return new ReBind(identifiers);
+
+       this.identifiers = identifiers;
+   }
 
    function Bind(object, htmlScope, mapping){
        //for every mapping
@@ -54,13 +72,11 @@
 
            //if the key is an object
            if(typeof obj[key] === 'object'){//identifier is always an object now
+               //obj[key]['parent'] = obj;
                Bind(obj[key], htmlScope, identifiers);
                continue;
            }
            
-           if(identifiers.constructor !== Array)   //now change object to make sure it is an array
-               identifiers = [identifiers];
-
            var nestedKey = key.split('.');
            for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
                var index = getIndex(nestedKey[i]);
@@ -79,53 +95,25 @@
            if(index != -1)
                key = key.substr(0, key.indexOf('['));
 
-           identifiers = parseIdentifiers(identifiers);
-
-           //get the attribute of the HTML that we're modifying (div:className)
-           var els = [];
-           for(var i = 0; i < identifiers.length; i++){
-               var id = identifiers[i];
-               var type = undefined;
-               if(typeof id === 'string'){
-                   var colonloc = id.indexOf(':');
-                   if(colonloc != -1){
-                       type = id.substr(colonloc+1);
-                       id = id.substr(0, colonloc);
-                   }
-               }else if(typeof id === 'object'){
-                   if(id.type !== undefined && id.element !== undefined){
-                       type = id.type;
-                       id = id.element;
-                   }else if(id.type !== undefined && id.fn !== undefined){
-                       type = id.type;
-                       id = id.fn();
-                   }else if(!isElement(id)){
-                       throw 'error'
-                   }
-               }else if(typeof id === 'function'){
-                   id = id();
-               }
-               if(type === undefined)  type = 'innerHTML';//change this and other innerHTML to use a function to choose best default instead of always innerHTML
-               els.push({'elements': getElements(id, htmlScope), 'type': type});
-           }
-           bindobj(obj, key, els, index);
+           bindobj(obj, key, makeElementsBundle(identifiers, htmlScope), index, htmlScope);
        }
    }
 
-   function bindobj(obj, key, els, index){//has to be done inside it's own function so value is unique
+   //index is literally used only once on the first iteration. consider refactor.
+   function bindobj(obj, key, els, index, htmlScope){//has to be done inside it's own function so value is unique
        var value = obj[key];
       
        if(value !== undefined && value.constructor === Array){    //establish 1 to 1 binding
            
            if(index != undefined && index != -1){//if index specified, treat as single value
-               bindobj(value, index, els, undefined);
+               bindobj(value, index, els, undefined, htmlScope);
            }else{ //could implement some sort of better checking/dynamic setting here maybe
                for(var i = 0; i < els.length; i++){
                    for(var j = 0; j < els[i].elements.length; j++){
                        var el = els[i].elements[j];
                        if(!value[i*els.length+j])
                            value.push(el[els[i].type]);//give default value
-                       bindobj(value, i, [{'elements': [el], 'type': els[i].type}], undefined);
+                       bindobj(value, i, [{'elements': [el], 'type': els[i].type}], undefined, htmlScope);
            }}}
        }else{
            //establish 1 to all binding
@@ -153,11 +141,18 @@
                    
                },
                set: function(v){
-                   if(v === UnBind){
+                   if(v instanceof UnBind || v === UnBind){
                        delete obj[key];
                        obj[key] = value;
                        return;
+                   }else if(v instanceof ReBind){
+                       delete obj[key];
+                       obj[key] = value;
+                       v = makeElementsBundle(v.identifiers, htmlScope);
+                       bindobj(obj, key, v, undefined, htmlScope);
+                       return;
                    }
+                   //default assignment behavior:
                    value = v;
                    for(var i = 0; i < els.length; i++)
                        for(var j = 0; j < els[i].elements.length; j++)
@@ -176,6 +171,41 @@
                newids.push(identifiers[i]);
        }
        return newids
+   }
+
+   function makeElementsBundle(identifiers, htmlScope){
+       if(identifiers.constructor !== Array)   //now change object to make sure it is an array
+           identifiers = [identifiers];
+
+       identifiers = parseIdentifiers(identifiers);
+
+       var els = [];
+       for(var i = 0; i < identifiers.length; i++){
+           var id = identifiers[i];
+           var type = undefined;
+           if(typeof id === 'string'){
+               var colonloc = id.indexOf(':');
+               if(colonloc != -1){
+                   type = id.substr(colonloc+1);
+                   id = id.substr(0, colonloc);
+               }
+           }else if(typeof id === 'object'){
+               if(id.type !== undefined && id.element !== undefined){
+                   type = id.type;
+                   id = id.element;
+               }else if(id.type !== undefined && id.fn !== undefined){
+                   type = id.type;
+                   id = id.fn();
+               }else if(!isElement(id)){
+                   throw 'error'
+               }
+           }else if(typeof id === 'function'){
+               id = id();
+           }
+           if(type === undefined)  type = 'innerHTML';//change this and other innerHTML to use a function to choose best default instead of always innerHTML
+           els.push({'elements': getElements(id, htmlScope), 'type': type});
+       }
+       return els;
    }
 
    function getElements(identifier, htmlScope){
@@ -346,7 +376,8 @@
    }
 
    exports.UnBind = UnBind;
-   exports.default = Bind;
+   exports.ReBind = ReBind;
+   exports.Bind = Bind;
 
    Object.defineProperty(exports, '__esModule', { value: true });
 

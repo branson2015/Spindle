@@ -17,11 +17,12 @@
     </div>
 
     <script>
-      var obj = {property: ["more", "test", "data", "here"]}
+      var obj = {property: ["more", "test", "data", {p2: 'test'}]}
       var element = document.getElementById("uniqueTest");
       
-      Spindle.default(obj, element, {
-        property: "#inputtext:value #2_2 #2_3 #3"
+      Spindle.Bind(obj, element, {
+        property: "#inputtext:value #2_2 #2_3",
+        'property[3].p2': '#3'
       });
     </script>
   </body>
