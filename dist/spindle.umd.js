@@ -36,11 +36,9 @@
    */
 
    function UnBind(object){
-       if(object === undefined){
-           if(!(this instanceof UnBind))
-               return new UnBind(undefined);
+       if(object === undefined)
            return;
-       }
+
        for(var property in object){
            if(typeof object[property] === 'object'){
                UnBind(object[property]);
@@ -54,7 +52,6 @@
    function ReBind(identifiers){
        if(!(this instanceof ReBind))
            return new ReBind(identifiers);
-
        this.identifiers = identifiers;
    }
 
@@ -129,7 +126,11 @@
                    value = undefined;
            }
 
-
+           for(var i = 0; i < els.length; i++){
+               for(var j = 0; j < els[i].elements.length; j++){
+                   els[i].elements[j].addEventListener(getEL(els[i].elements[j]), function(){obj[key];});//calls get
+               }
+           }
 
            //set events to fire here onchange
 
@@ -141,7 +142,7 @@
                    
                },
                set: function(v){
-                   if(v instanceof UnBind || v === UnBind){
+                   if(v === UnBind){
                        delete obj[key];
                        obj[key] = value;
                        return;
@@ -300,6 +301,12 @@
        }
 
        return found;
+   }
+
+   function getEL(element){
+       //TODO: make this more compitent
+
+       return 'keyup';
    }
 
    function find_html_index(parent, index, tagname){

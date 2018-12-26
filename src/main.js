@@ -120,7 +120,11 @@ function bindobj(obj, key, els, index, htmlScope){//has to be done inside it's o
                 value = undefined;
         }
 
-
+        for(var i = 0; i < els.length; i++){
+            for(var j = 0; j < els[i].elements.length; j++){
+                els[i].elements[j].addEventListener(getEL(els[i].elements[j]), function(){obj[key];});//calls get
+            }
+        }
 
         //set events to fire here onchange
 
@@ -291,6 +295,12 @@ function childTags(curr, tag){
     }
 
     return found;
+}
+
+function getEL(element){
+    //TODO: make this more compitent
+
+    return 'keyup';
 }
 
 function find_html_index(parent, index, tagname){
