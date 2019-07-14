@@ -59,44 +59,51 @@ export function Bind(object, htmlScope, mapping){
         //reset key to refer to last nested object (obj will refer to it as well at this point)
         key = nestedKey[nestedKey.length-1];
 
-        var index = getIndex(key);
-        if(index != -1){
-            obj = obj[key.substr(0, key.indexOf('['))];
-            key = index;
-        }
         
-        bindobj(obj, key, elementTypeBundle(identifiers, htmlScope));
+
+        var index = getIndex(key);
+        if(index != -1)
+            key = key.substr(0, key.indexOf('['));
+
+        bindobj(obj, key, index, makeElementsBundle(identifiers, htmlScope), htmlScope);
     }
 }
 
-function bindobj(obj, key, els){//has to be done inside it's own function so value is unique
+//index is literally used only once on the first iteration. consider refactor.
+function bindobj(obj, key, index, els, htmlScope){//has to be done inside it's own function so value is unique
     var value = obj[key];
    
     if(value !== undefined && value.constructor === Array){    //establish 1 to 1 binding
-        //could implement some sort of better checking/dynamic setting here maybe
-        for(var i = 0; i < els.length; i++){
-            for(var j = 0; j < els[i].elements.length; j++){
-                var el = els[i].elements[j];
-                if(!value[i*els.length+j])
-                    value.push(el[els[i].type]);//give default value
-                bindobj(value, i, [{'elements': [el], 'type': els[i].type}]);
-            }
-        }
+        
+        if(index != undefined && index != -1){//if index specified, treat as single value
+            bindobj(value, index, undefined, els, htmlScope);
+        }else{ //could implement some sort of better checking/dynamic setting here maybe
+            for(var i = 0; i < els.length; i++){
+                for(var j = 0; j < els[i].elements.length; j++){
+                    var el = els[i].elements[j];
+                    if(!value[i*els.length+j])
+                        value.push(el[els[i].type]);//give default value
+                    bindobj(value, i, undefined, [{'elements': [el], 'type': els[i].type}], htmlScope);
+        }}}
     }else{
-        //establish 1 to all binding (all may be just 1 element)
+        //establish 1 to all binding
         if(value !== undefined){
             for(var i = 0; i < els.length; i++)
                 for(var j = 0; j < els[i].elements.length; j++)
                     els[i].elements[j][els[i].type] = value;
+
         }else{ 
-            if(els.length == 1 && els[0].elements.length == 1)  //if only 1 element total is present and value is undefined, assign value to element
+            if(els.length == 1 && els[0].elements.length == 1){  //only one element total
                 value = els[0].elements[0][els[0].type];
-            else
-                value = undefined;  //else, just keep value undefined
+            }else
+                value = undefined;
         }
-        for(var i = 0; i < els.length; i++)
-            for(var j = 0; j < els[i].elements.length; j++)
+
+        for(var i = 0; i < els.length; i++){
+            for(var j = 0; j < els[i].elements.length; j++){
                 els[i].elements[j].addEventListener(getEL(els[i].elements[j]), function(event){obj[key];});//trigger get
+            }
+        }
 
         //set events to fire here onchange
         Object.defineProperty(obj, key, {
@@ -107,19 +114,19 @@ function bindobj(obj, key, els){//has to be done inside it's own function so val
                 
             },
             set: function(v){
-                /*if(v === UnBind){
+                if(v === UnBind){
                     delete obj[key];
                     obj[key] = value;
                     return;
                 }else if(v instanceof ReBind){
                     delete obj[key];
                     obj[key] = value;
-                    //TODO: FIX v = makeElementsBundle(v.identifiers, htmlScope);
-                    bindobj(obj, key, undefined, v);
+                    v = makeElementsBundle(v.identifiers, htmlScope);
+                    bindobj(obj, key, undefined, v, htmlScope);
                     return;
-                }*/
+                }
                 //default assignment behavior:
-                //value = v;
+                value = v;
                 for(var i = 0; i < els.length; i++)
                     for(var j = 0; j < els[i].elements.length; j++)
                         els[i].elements[j][els[i].type] = v;
@@ -128,16 +135,23 @@ function bindobj(obj, key, els){//has to be done inside it's own function so val
     }
 }
 
-
-/*
-    format: {
-        elements: [... list of DOM Elements ...],
-        type: string
+function parseIdentifiers(identifiers){
+    var newids = [];
+    for(var i = 0; i < identifiers.length; i++){
+        if(typeof identifiers[i] === 'string')
+            newids = newids.concat(identifiers[i].split(' '));
+        else
+            newids.push(identifiers[i]);
     }
-    return = [... format ...]
-*/
+    return newids
+}
+
 //change this to accept arrays of DOM Objects
-function elementTypeBundle(identifiers, htmlScope){
+function makeElementsBundle(identifiers, htmlScope){
+    if(identifiers.constructor !== Array)   //now change object to make sure it is an array
+        identifiers = [identifiers];
+
+    identifiers = parseIdentifiers(identifiers);
 
     var els = [];
     for(var i = 0; i < identifiers.length; i++){
@@ -149,25 +163,20 @@ function elementTypeBundle(identifiers, htmlScope){
                 type = id.substr(colonloc+1);
                 id = id.substr(0, colonloc);
             }
-        }else if(typeof id === 'object'){   //{type: 'whatever', elements: 'whatever'}
-            if(id.type !== undefined && id.elements !== undefined){
+        }else if(typeof id === 'object'){
+            if(id.type !== undefined && id.element !== undefined){
                 type = id.type;
-                id = id.elements;
-            }else if(id.type !== undefined && id.fn !== undefined){ //{type: 'whatever', fn: function(){...}}
+                id = id.element;
+            }else if(id.type !== undefined && id.fn !== undefined){
                 type = id.type;
-                //TODO: this needs to be put into proper format (converted to array etc)
                 id = id.fn();
-            }else if(isElement(id)){
-                throw 'error, not yet implimented'
-            }else{
+            }else if(!isElement(id)){
                 throw 'error'
             }
-        }else if(typeof id === 'function'){     //function(){...}
-            //TODO: this needs to be put into proper format (converted to array etc)
+        }else if(typeof id === 'function'){
             id = id();
         }
-
-        //change this to use a map keyed on type to minimize loops in get/set functions??
+        if(type === undefined)  type = 'innerHTML';//Att.getDefaultAttribute()
         els.push({'elements': getElements(id, htmlScope), 'type': type});
     }
     return els;
@@ -175,27 +184,34 @@ function elementTypeBundle(identifiers, htmlScope){
 
 function getElements(identifier, htmlScope){
 
-    //TODO: CURRENTLY MODIFYING THIS
+    if(isElement(identifier)){
+        //NEEDS TESTING
+        return find_html_children_element(htmlScope, identifier);
+    }
 
-    if(isElement(identifier))
+    else if(typeof identifier === 'function'){
         //NEEDS TESTING
-        return find_html_children_elements(htmlScope, identifier);
-    else if(typeof identifier === 'function')
-        //NEEDS TESTING
-        return find_html_children_elements(htmlScope, identifier());
+        return find_html_children_element(htmlScope, identifier());
+    }
+    
     else if(typeof identifier === 'string'){
 
         var scopes;
+        
+        identifier = identifier.split('.');
 
         //find ID's inside of htmlScope element
-        if(identifier[0] === '#')
-            scopes = find_html_child_id(htmlScope, identifier[0].substr(1));
-        else if(identifier[0] === '.')   //find classes inside of htmlScope element
-            scopes = find_html_children_classes(htmlScope, identifier[1]);
-        else{
-            //find elements specified by string inside of htmlScope element
-            identifier = identifier.split('.');
+        if(identifier[0][0] === '#'){
+            scopes = find_html_children_id(htmlScope, identifier[0].substr(1));
+            identifier.splice(0,1);
+        }
 
+        //find classes inside of htmlScope element
+        else if(identifier[0][0] === undefined){
+            scopes = find_html_children_class(htmlScope, identifier[1]);
+            identifier.splice(0,2)
+        }else{
+            //find elements specified by string inside of htmlScope element
             var first = identifier.shift();
             var i = getIndex(first);
             if(i != -1)
@@ -262,7 +278,6 @@ function childTags(curr, tag){
 
 function getEL(element){
     //TODO: make this more compitent
-    //probably should pass in els to get types
 
     return 'input';
 }
@@ -285,21 +300,21 @@ function find_html_index(parent, index, tagname){
     return el;
 }
 
-function find_html_children_elements(curr, find){
+function find_html_children_element(curr, find){
     return find_all_tree(curr, find, 
         function(curr, find){ return (curr === find ?  true :  false); },
         function(curr){ return curr.children; },
     false);
 }
 
-function find_html_children_classes(curr, find){
+function find_html_children_class(curr, find){
     return find_all_tree(curr, find, 
         function(curr, find){ return (curr.className === find ?  true :  false); },
         function(curr){ return curr.children; },
     false);
 }
 
-function find_html_child_id(curr, find){
+function find_html_children_id(curr, find){
     return find_all_tree(curr, find, 
         function(curr, find){ return (curr.id === find ?  true :  false); },
         function(curr){ return curr.children; },
@@ -307,6 +322,8 @@ function find_html_child_id(curr, find){
 }
 
 function find_all_tree(curr, find, comparefn, traversefn, unique){
+    unique = !!unique;
+
     var found = [];
 
     if(comparefn(curr, find)){
@@ -324,7 +341,6 @@ function find_all_tree(curr, find, comparefn, traversefn, unique){
     return found;
 }
 
-//todo: make this more.. lexical.
 function getIndex(str){
     var index = -1;
     var b_loc_s = str.indexOf('[');

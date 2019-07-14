@@ -14,15 +14,37 @@
       <div id="2_3">2_3</div>
       <div id="3">3</div>
       <div id="4">4</div>
+      <div id="5">5</div>
+      <div id="6">6</div>
+      <div id="7">7</div>
     </div>
 
     <script>
-      var obj = {property: 'test'}
+      var obj = {
+        property: 'test',
+        property2: {
+          arr: ['1','2','3']
+        },
+        property3:{
+          property4: ['I\'m number 3!']
+        },
+        property5: "ok"
+    }
       var element = document.getElementById("uniqueTest");
       
-      Spindle.Bind(obj, element, {
-        property: "#inputtext:value #2_2 #2_3"
-      });
+      var mapping = {
+        property: "#inputtext:value",
+
+        property2: {
+          arr: ["#2_2 #7", "#2_3", "#4"]
+        },
+        "property3.property4[0]": '#3',
+        property5: t
+      }
+
+      function t(){return "#5"}
+      
+      Spindle.Bind(obj, element, mapping);
 
     </script>
   </body>

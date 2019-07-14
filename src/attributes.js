@@ -1,4 +1,4 @@
-let defaultAttributeMap = {
+export var defaultAttributeMap = {
   audio: 'src',
   embed: 'src',
   form: 'action',
@@ -28,6 +28,9 @@ let defaultAttributeMap = {
   text: 'value'
 }
 
-function getDefaultAttribute(elem) {
-  return defaultAttributeMap[elem];
+export function getDefaultAttribute(elementName) {
+  var rval = defaultAttributeMap[elementName];
+  if(rval === undefined)
+    rval = 'innerHTML';
+  return rval;
 }
