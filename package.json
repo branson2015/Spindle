@@ -5,11 +5,7 @@
   "main": "dist/spindle.umd.js",
   "module": "dist/spindle.esm.js",
   "commonJS": "dist/spindle.cjs.js",
-
-
-  "dependencies": {
-    
-  },
+  "dependencies": {},
   "devDependencies": {
     "rollup": "^0.67.4"
   },
@@ -17,12 +13,10 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "node test/test.js"
-
   },
   "files": [
     "dist"
   ],
-  
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/branson2015/Spindle.git"

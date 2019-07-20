@@ -8,15 +8,15 @@
   <body>
     <div class="" id="uniqueTest" style="background-color: #90ee90; height: 100px; width: 100px;">
       <input type="text" value="initial" id="inputtext">
-      <div id="2_1">2_1</div>
+      <div id="a2_1">2_1</div>
       <strong class="ok"><div><div>2_1.5</div></div></strong>
-      <div id="2_2">2_2</div>
-      <div id="2_3">2_3</div>
-      <div id="3">3</div>
-      <div id="4">4</div>
-      <div id="5">5</div>
-      <div id="6">6</div>
-      <div id="7">7</div>
+      <div id="a2_2">2_2</div>
+      <div id="a2_3">2_3</div>
+      <div id="a3">3</div>
+      <div id="a4">4</div>
+      <div id="a5">5</div>
+      <div id="a6">6</div>
+      <div id="a7">7</div>
     </div>
 
     <script>
@@ -33,16 +33,16 @@
       var element = document.getElementById("uniqueTest");
       
       var mapping = {
-        property: "#inputtext:value",
+        property: "#inputtext",
 
         property2: {
-          arr: ["#2_2 #7", "#2_3", "#4"]
+          arr: ["#a2_2 #a7", "#a2_3", "#a4"]
         },
-        "property3.property4[0]": '#3',
+        "property3.property4[0]": '#a3',
         property5: t
       }
 
-      function t(){return "#5"}
+      function t(){return "#a5"}
       
       Spindle.Bind(obj, element, mapping);
 

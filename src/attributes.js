@@ -1,8 +1,10 @@
+
 export var defaultAttributeMap = {
   audio: 'src',
   embed: 'src',
   form: 'action',
   img: 'src',
+  input: 'value',
   object: 'data',
   optgroup: 'label',
   option: 'value',
@@ -26,11 +28,15 @@ export var defaultAttributeMap = {
   submit: 'value',
   tel: 'value',
   text: 'value'
+};
+export function getDefaultAttribute(elementName) {
+  return defaultAttributeMap[elementName.toLowerCase()] || 'innerHTML';
 }
 
-export function getDefaultAttribute(elementName) {
-  var rval = defaultAttributeMap[elementName];
-  if(rval === undefined)
-    rval = 'innerHTML';
-  return rval;
+
+export var defaultInteractMap = {
+  input: 'input'
+};
+export function getDefaultInteract(elementName) {
+  return defaultInteractMap[elementName.toLowerCase()] || 'input';
 }
