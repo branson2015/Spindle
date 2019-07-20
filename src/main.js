@@ -1,20 +1,12 @@
 import * as Att from './attributes.js'
 import * as Aux from './Auxillary.js'
 
-var uniqueID = 'SpindleUniqueID'
-
 //TODO: make get function that returns which element(s) the object is bound to
 //make different ways of binding function (auto create object, make window the htmlScope, etc)
 
 export function Bind(object, htmlScope, mapping){
-    var oldID = undefined;
-    var htmlScopeID = htmlScope;
-    if(isElement(htmlScope)){
-        oldID = htmlScopeID.id
-        htmlScopeID = htmlScope.id = uniqueID;
-    }else if(document.getElementById(htmlScopeID) === null){
-        throw 'bad ID';
-    }
+    if(typeof htmlScope === 'string')   htmlScope = document.querySelector(htmlScope);  //change to querySelectorAll for multibinding
+    if(!isElement(htmlScope))   throw 'bad element identifier';
     
     //for every mapping
     for(var key in mapping){
@@ -22,136 +14,80 @@ export function Bind(object, htmlScope, mapping){
         var obj = object;
         
         var identifiers = mapping[key];
-        if(typeof identifiers === 'string')
-            identifiers = identifiers.split(' ');
-        else if(typeof identifiers !== 'object')   //keep objects in object form, put into recursion (also includes arrays)
+        if(typeof identifiers !== 'object' || isElement(identifiers))   //keep objects in object form, put into recursion (also includes arrays)
             identifiers = [identifiers];
 
         if(typeof obj[key] === 'object'){
-            //obj[key]['parent'] = obj;
             Bind(obj[key], htmlScope, identifiers);
             continue;
         }
         
-        //shortcuts
-        var nestedKey = key.split('.');
-        for(var i = 0; i < nestedKey.length-1; i++){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
-            var index = getIndex(nestedKey[i]);
-            if(index == -1)
-                obj = obj[nestedKey[i]];
-            else{
-                nestedKey[i] = nestedKey[i].substr(0, nestedKey[i].indexOf('['));
-                obj = obj[nestedKey[i]][index];
-            }
+        //shortcuts (using weird arrays to hack in references)
+        key = key.split('.');
+        var curr = [key.shift()];
+        for(; key.length > 0; curr = [key.shift()]){//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
+            var index = getIndex(curr);
+            obj = (index !== -1) ? obj[curr[0]][index] : obj[curr[0]];
+        }
+        var index = getIndex(curr);
+        if(index !== -1){
+            obj = obj[curr[0]];
+            curr[0] = index;
         }
         
-        //reset key to refer to last nested object (obj will refer to it as well at this point)
-        key = nestedKey[nestedKey.length-1];
-
-        var index = getIndex(key);
-        if(index != -1){
-            obj = obj[key.substr(0, key.indexOf('['))];
-            key = index;
-        }
-        
-        bindobj(obj, key, elementTypeBundle(htmlScopeID, identifiers));
+        bindobj(obj, curr[0], elementTypeBundle(htmlScope, identifiers));
     }
-
-    if(oldID !== undefined)
-        htmlScope.id = oldID;
-
 }
 
-function bindobj(obj, key, els){//has to be done inside it's own function so value is unique
+function bindobj(obj, key, els){
     var value = obj[key];
 
-   //TODO: test this
-    if(value !== undefined && value.constructor === Array){    //establish 1 to 1 binding (recurse)
-        els.forEach((bundle)=>{ bindobj(value, i, [bundle]); });
-        return;
-    }else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
+    if(value !== undefined && value.constructor === Array)  //establish 1 to 1 binding (recurse)
+        return els.forEach((bundle)=>{ bindobj(value, i, [bundle]); });
+    else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
         for(var i = 0; i < els.length; i++)
-            els[i].element[els[i].type] = value;
+            els[i]['e'][els[i]['t']] = value;
     else if(els.length == 1)  //if only 1 element total is present and value is undefined, assign value to element
-        value = els[0].element[els[0].type];
+        value = els[0]['e'][els[0]['t']];
     
-
+    //trigger get (TODO: not all elements have an interact, can skip this sometimes)
     for(var i = 0; i < els.length; i++)
-        els[i].element.addEventListener(Att.getDefaultInteract(els[i].element.tagName), function(event){obj[key];});//trigger get
+        els[i]['e'].addEventListener(Att.getDefaultInteract(els[i]['e'].tagName), (event)=>{obj[key];});
 
     //set events to fire here onchange
     Object.defineProperty(obj, key, {
-        get: function(){
-            var rval = els[0].element[els[0].type];
-            obj[key] = rval; //calls set function to update all other wrap-bound objects
-            return rval; //can't return obj[key] here or else recursion
-        },
-        set: function(v){
-            for(var i = 0; i < els.length; i++)
-                els[i].element[els[i].type] = v;
-        }
+        get: ()=>{ return obj[key] = els[0]['e'][els[0]['t']]; },
+        set: (v)=>{ els.forEach((el)=>{el['e'][el['t']] = v;}) }
     });
 }
 
 function elementTypeBundle(htmlscope, identifiers){
     var els = [];
-    for(var i = 0; i < identifiers.length; i++){
-        var id = identifiers[i];
-        var type = undefined;
-        //not sure if this part works anymore with queryselectall..
-        /*if(typeof id === 'string'){
-            var colonloc = id.indexOf(':')
-            if(colonloc != -1){
-                type = id.substr(colonloc+1);
-                id = id.substr(0, colonloc);
-            }
-        }else */if(typeof id === 'object'){   //{type: 'whatever', elements: 'whatever'}
-            if(id.type !== undefined && id.elements !== undefined){
-                type = id.type;
-                id = id.elements;
-            }else if(id.type !== undefined && id.fn !== undefined){ //{type: 'whatever', fn: function(){...}}
-                type = id.type;
-                //TODO: this needs to be put into proper format (converted to array etc)
-                id = id.fn();
-            }else if(isElement(id)){
-                throw 'error, not yet implimented'
-            }else{
-                throw 'error'
-            }
-        }else if(typeof id === 'function'){     //function(){...}
-            //TODO: this needs to be put into proper format (converted to array etc)
-            id = id();
-        }
+    identifiers.forEach((id)=>{
+        //TODO: put shortcuts for defining which type IN STRING to modify
+        //TODO: implement objects: {'element': 'whatever', 'type': 'whatever'}
+        if(isElement(id))
+            return els.push({'e': id, 't': Att.getDefaultAttribute(id.tagName)});
 
-        els = els.concat(getElements(htmlscope, id, type));
-    }
+        id = (function translate(id){ return (typeof id === 'function') ?  translate(id()) : id; })(id);
+        els = els.concat(getElements(htmlscope, id));
+    });
     return els;
 }
 
-//TODO: this should only ever return 1 element because of how the above is structured to break down strings.. what do?
-function getElements(scope, query, type){
+function getElements(scope, query){
     var bundle = [];
-    var elements = document.querySelectorAll('#' + scope + ' > ' + query);
-
-    elements.forEach((element)=>{
-        bundle.push({'element' : element, 'type' : type || Att.getDefaultAttribute(element.tagName)});
-    })
+    scope.querySelectorAll(query).forEach((element)=>{
+        bundle.push({'e' : element, 't' : Att.getDefaultAttribute(element.tagName)});
+    });
     return bundle;
 }
 
-
-
-
-
-
-//todo: make this more.. lexical.
-function getIndex(str){
-    var index = -1;
-    var b_loc_s = str.indexOf('[');
-    var b_loc_e = str.indexOf(']');
-    if(b_loc_s != -1 && b_loc_e  != -1)
-        index = parseInt(str.substr(b_loc_s + 1, b_loc_e - 1), 10);
-    return index;
+function getIndex(str, i = 0){
+    var start = str[i].indexOf('[') + 1, dist = str[i].indexOf(']') - start;
+    var idx = parseInt(str[i].substr(start, dist), 10);
+    if(start !== 0)   str[i] = str[i].substr(0, start-1);
+    return isNaN(idx) ? -1 : idx;
 }
 
 function isElement(o){

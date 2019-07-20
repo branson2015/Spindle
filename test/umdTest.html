@@ -7,42 +7,43 @@
   </head>
   <body>
     <div class="" id="uniqueTest" style="background-color: #90ee90; height: 100px; width: 100px;">
-      <input type="text" value="initial" id="inputtext">
-      <div id="a2_1">2_1</div>
-      <strong class="ok"><div><div>2_1.5</div></div></strong>
-      <div id="a2_2">2_2</div>
-      <div id="a2_3">2_3</div>
-      <div id="a3">3</div>
+      <input type="text" value="1" id="inputtext">
+      <div id="a2">2</div>
+      <strong class="a3"><div><div>3</div></div></strong>
       <div id="a4">4</div>
       <div id="a5">5</div>
       <div id="a6">6</div>
       <div id="a7">7</div>
+      <div id="a8">8</div>
+      <div id="a9">9</div>
+      <div id="a10">10</div>
     </div>
 
     <script>
       var obj = {
-        property: 'test',
+        property: 'test1',
         property2: {
-          arr: ['1','2','3']
+          arr: ['test2','test3','test4']
         },
         property3:{
-          property4: ['I\'m number 3!']
+          property4: ['test5']
         },
-        property5: "ok"
+        property5: "test6"
     }
       var element = document.getElementById("uniqueTest");
       
       var mapping = {
-        property: "#inputtext",
+        property: "#inputtext, #a8, #a9", //TODO: this: {'e': "#inputtext", 't': 'innerHTML'},
 
         property2: {
-          arr: ["#a2_2 #a7", "#a2_3", "#a4"]
+          arr: [["#a2, .a3 div div", '#a10'], "#a4", "#a5"]
         },
-        "property3.property4[0]": '#a3',
+        "property3.property4[0]": '#a6',
         property5: t
       }
+      
 
-      function t(){return "#a5"}
+      function t(){return "#a7"}
       
       Spindle.Bind(obj, element, mapping);
 
