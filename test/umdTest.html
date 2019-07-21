@@ -17,6 +17,8 @@
       <div id="a8">8</div>
       <div id="a9">9</div>
       <div id="a10">10</div>
+
+      <input type="range" min="1" max="100" id="myRange">
     </div>
 
     <script>
@@ -28,7 +30,8 @@
         property3:{
           property4: ['test5']
         },
-        property5: "test6"
+        property6: 50,
+        property7: 100
     }
       var element = document.getElementById("uniqueTest");
       
@@ -39,11 +42,10 @@
           arr: [["#a2, .a3 div div", '#a10'], "#a4", "#a5"]
         },
         "property3.property4[0]": '#a6',
-        property5: t
-      }
-      
+        property6: Spindle.link({element: '#myRange', callback: (v)=>{obj.property7 = v}}),
+        property7: Spindle.link('#a7', 'innerHTML')
 
-      function t(){return "#a7"}
+      }
       
       Spindle.Bind(obj, element, mapping);
 
