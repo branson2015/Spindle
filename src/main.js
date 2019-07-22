@@ -3,7 +3,6 @@ import * as Aux from './Auxillary.js'
 
 //TODO: make get function that returns which element(s) the object is bound to
 //make different ways of binding function (auto create object, make window the htmlScope, etc)
-//add callback onchange functions
 
 function LINK(element, type, callback){
     this['element'] = element;
@@ -17,13 +16,10 @@ export function link(element, type, callback){
 }
 
 export function Bind(object, htmlScope, mapping){
-    if(typeof htmlScope === 'string')   htmlScope = document.querySelectorAll(htmlScope);
-    if(htmlScope.constructor === Array){
-        if(htmlScope.length > 1){
-            for(scope in htmlScope)    Bind(object, scope, mapping);    return;
-        }else
-            htmlScope = htmlScope[0];
-    }else if(!isElement(htmlScope))   throw 'bad element identifier';
+    if(typeof htmlScope === 'string')                   htmlScope = Array.from(document.querySelectorAll(htmlScope));
+    else if(htmlScope.constructor === HTMLCollection)   htmlScope = Array.from(htmlScope);
+    else if(isElement(htmlScope))                       htmlScope = [htmlScope];
+    else if(!isElement(htmlScope[0]))   throw 'bad element identifier';
     
     for(var key in mapping){
         var obj = object;
@@ -37,15 +33,15 @@ export function Bind(object, htmlScope, mapping){
         }
         
         //shortcuts (using weird arrays to hack in references)
+        //todo: might want to find a more efficient way to redo this.
         key = key.split('.');
         var curr = [key.shift()];
         for(; key.length > 0; curr = [key.shift()])//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
             var index = getIndex(curr), obj = (index !== -1) ? obj[curr[0]][index] : obj[curr[0]];
-
         var index = getIndex(curr);
         if(index !== -1)
             obj = obj[curr[0]], curr[0] = index;
-        
+
         bindobj(obj, curr[0], elementTypeBundle(htmlScope, identifiers));
     }
 }
@@ -53,38 +49,48 @@ export function Bind(object, htmlScope, mapping){
 function bindobj(obj, key, els){
     var value = obj[key];
 
-    if(value !== undefined && value.constructor === Array)  //establish 1 to 1 binding (recurse)
-        return els.forEach((bundle)=>{ bindobj(value, i, [bundle]); });
-    else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
-        for(var i = 0; i < els.length; i++)
+    //this code decides on what the value for the elements should be
+    if(value !== undefined && value.constructor === Array){  //establish 1 to 1 binding (recurse)
+        for(var i = els.length-1; i >= 0; --i){ bindobj(value, i, [els[i]]); }  return;
+    }else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
+        for(var i = els.length-1; i >= 0; --i)
             els[i]['e'][els[i]['t']] = value;
     else if(els.length == 1)  //if only 1 element total is present and value is undefined, assign value to element
         value = els[0]['e'][els[0]['t']];
     
-    //trigger get (TODO: not all elements have an interact, can skip this sometimes)
-    for(var i = 0; i < els.length; i++)
-        els[i]['e'].addEventListener(Att.getDefaultInteract(els[i]['e'].tagName), (event)=>{obj[key];});
+    //set the eventListeners on the correct type (if applies)
+    for(var i = els.length-1; i >= 0; --i){
+        var listenType = Att.getDefaultInteract(els[i]['e'].tagName)
+        if(listenType == 'input')   //TODO: make this more encompassing of input types
+            ((i)=>{els[i]['e'].addEventListener(listenType, (event)=>{obj[key] = els[i]['e'][els[i]['t']];});})(i);
+    }
 
-    //set events to fire here onchange
-    Object.defineProperty(obj, key, {
-        get: ()=>{ return obj[key] = els[0]['e'][els[0]['t']];  },
-        set: (v)=>{ els.forEach((el)=>{el['e'][el['t']] = v; if(el['c']) el['c'](v)}); },
-    });
+    //set events to fire here onchange (need closure for getter/setter)
+    (()=>{
+        var val = value;
+        Object.defineProperty(obj, key, {
+            get: ()=>{return val;  },
+            set: (v)=>{val = v; for(var i = els.length-1; i >= 0; --i){els[i]['e'][els[i]['t']] = v; if(els[i]['c']) els[i]['c'](v)} },
+    });})();
 }
 
-function elementTypeBundle(htmlscope, identifiers){
+function elementTypeBundle(htmlScope, identifiers){
     var els = [];
-    identifiers.forEach((id)=>{
-        var el, type, callback;
-        
-        if(id.constructor === LINK)
-            el = bundle(htmlscope, id['element'], type = id['type'], callback = id['callback']);
-        else if(typeof id === 'string' || isElement(id))
-            el = bundle(htmlscope, id, type);
-        else
-            throw 'error, object not in right form'
-        els = els.concat(el);
-    });
+    for(var i = htmlScope.length-1; i >= 0; --i){
+        var scope = htmlScope[i];
+        for(var j = identifiers.length-1; j >= 0; --j){
+            var id = identifiers[j];
+            var el, type, callback;
+            
+            if(id.constructor === LINK)
+                el = bundle(scope, id['element'], type = id['type'], callback = id['callback']);
+            else if(typeof id === 'string' || isElement(id))
+                el = bundle(scope, id, type);
+            else
+                throw 'error, object not in right form'
+            els = els.concat(el);
+        }
+    }
     return els;
 }
 
@@ -99,7 +105,7 @@ function bundle(scope, query, type, callback){
         throw 'error'
 
     var b = [];
-    for(var i = 0; i < group.length; ++i)
+    for(var i = group.length-1; i >= 0; --i)
         b.push({'e' : group[i], 't' : type || Att.getDefaultAttribute(group[i].tagName), 'c': callback});
     return b;
 }

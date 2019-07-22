@@ -6,48 +6,43 @@
     <script src="../dist/spindle.umd.js"></script>
   </head>
   <body>
-    <div class="" id="uniqueTest" style="background-color: #90ee90; height: 100px; width: 100px;">
-      <input type="text" value="1" id="inputtext">
-      <div id="a2">2</div>
-      <strong class="a3"><div><div>3</div></div></strong>
-      <div id="a4">4</div>
-      <div id="a5">5</div>
-      <div id="a6">6</div>
-      <div id="a7">7</div>
-      <div id="a8">8</div>
-      <div id="a9">9</div>
-      <div id="a10">10</div>
+    <div class = 'container'>
+      <input>
+      <p>2</p>
+      <p id = 'a3'>3</p>
+      <p class = 'a4'>4</p>
+    </div>
 
-      <input type="range" min="1" max="100" id="myRange">
+    <div class = 'container'>
+        <input>
+        <p>2</p>
+        <p id = 'a3'>3</p>
+        <p class = 'a4'>4</p>
     </div>
 
     <script>
-      var obj = {
-        property: 'test1',
-        property2: {
-          arr: ['test2','test3','test4']
-        },
-        property3:{
-          property4: ['test5']
-        },
-        property6: 50,
-        property7: 100
-    }
-      var element = document.getElementById("uniqueTest");
       
-      var mapping = {
-        property: "#inputtext, #a8, #a9", //TODO: this: {'e': "#inputtext", 't': 'innerHTML'},
-
-        property2: {
-          arr: [["#a2, .a3 div div", '#a10'], "#a4", "#a5"]
-        },
-        "property3.property4[0]": '#a6',
-        property6: Spindle.link({element: '#myRange', callback: (v)=>{obj.property7 = v}}),
-        property7: Spindle.link('#a7', 'innerHTML')
-
+      var scopes = ".container";
+      
+      var obj = {
+        inputTag: 'value1',
+        ptags:{
+          p1Tag: 'value2',
+          p2Tag: 'value3',
+          p3Tag: 'value4'
+        }
       }
       
-      Spindle.Bind(obj, element, mapping);
+      var mapping = {
+        inputTag: Spindle.link('input', 'value'),//, (v)=>{console.log(v)}),
+        'ptags.p1Tag': 'p:first-of-type',
+        ptags:{
+          p2Tag: '#a3',
+          p3Tag: '.a4'
+        }
+      }
+      
+      Spindle.Bind(obj, scopes, mapping);
 
     </script>
   </body>
