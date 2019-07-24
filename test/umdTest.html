@@ -18,6 +18,13 @@
         <p>2</p>
         <p id = 'a3'>3</p>
         <p class = 'a4'>4</p>
+        <p class = 'a4'>5</p>
+        <p class = 'a5'>6</p>
+        <p class = 'a5'>7</p>
+        <p class = 'a6'>8</p>
+        <p class = 'a6'>9</p>
+        <p id = 'a10'>10</p>
+        <p id = 'a11'>11</p>
     </div>
 
     <script>
@@ -27,21 +34,37 @@
       var obj = {
         inputTag: 'value1',
         ptags:{
-          p1Tag: 'value2',
-          p2Tag: 'value3',
-          p3Tag: 'value4'
+          p2Tag: 'value2',
+          p3Tag: 'value3',
+          p4Tags: ['value4', 'value4', 'value5'],//this should be an array....
+          p5Tags: [], 
+          p6Tags: 'value8 and value9'
+        },
+        complicated: {
+          object: [1, 2, {
+            embedded: {
+              value: ['value10', 'value11'] //fixing above should also fix this. hopefully.
+            }
+          }]
         }
       }
       
       var mapping = {
-        inputTag: Spindle.link('input', 'value'),//, (v)=>{console.log(v)}),
-        'ptags.p1Tag': 'p:first-of-type',
+        inputTag: Spindle.link('input', 'value', (v)=>{console.log(v)}),
+        'ptags.p2Tag': Spindle.link({elements: 'p:first-of-type', type: 'innerHTML', callback: undefined}),
         ptags:{
-          p2Tag: '#a3',
-          p3Tag: '.a4'
+          p3Tag: '#a3',
+          p4Tags: '.a4',
+          p5Tags: '.a5',
+          p6Tags: document.getElementsByClassName('a6')
+        },
+        'complicated.object[2]': {
+          embedded: {
+            'value': '#a10, #a11'
+          }
         }
+        //'complicated.object[2].embedded.value': '#a10, #a11'
       }
-      
       Spindle.Bind(obj, scopes, mapping);
 
     </script>

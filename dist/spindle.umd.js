@@ -47,15 +47,17 @@
 
   //TODO: make get function that returns which element(s) the object is bound to
   //make different ways of binding function (auto create object, make window the htmlScope, etc)
+  //make unbind/rebind >>functions<<
 
   function LINK(element, type, callback){
-      this['element'] = element;
-      this['type'] = type;
-      this['callback'] = callback;
+      this['e'] = element;
+      this['t'] = type;
+      this['c'] = callback;
   }
 
+  //TODO: try to make this be the link object instead of having hte seperate LINK function somehow
   function link(element, type, callback){
-      if(typeof element === 'object') return new LINK(element['element'], element['type'], element['callback']);
+      if(typeof element === 'object') return new LINK(element['elements'], element['type'], element['callback']);
       return new LINK(element, type, callback)
   }
 
@@ -64,29 +66,33 @@
       else if(htmlScope.constructor === HTMLCollection)   htmlScope = Array.from(htmlScope);
       else if(isElement(htmlScope))                       htmlScope = [htmlScope];
       else if(!isElement(htmlScope[0]))   throw 'bad element identifier';
-      
+      reduce(object, htmlScope, mapping);
+  }
+
+  function reduce(object, scopes, mapping){
       for(var key in mapping){
           var obj = object;
           
-          var identifiers = mapping[key];
-          if(typeof identifiers !== 'object' || identifiers.constructor === LINK || isElement(identifiers))   //keep objects in object form, put into recursion (also includes arrays)
-              identifiers = [identifiers];
+          var id = mapping[key];
+          var lowest = false;
+          if(typeof id === 'string' || id.constructor === LINK || isElement(id) || id.constructor === HTMLCollection)   //keep objects in object form, put into recursion (also includes arrays)
+              id = bundle(scopes, id), lowest = true;
 
-          if(typeof obj[key] === 'object'){
-              Bind(obj[key], htmlScope, identifiers); continue;
-          }
-          
-          //shortcuts (using weird arrays to hack in references)
-          //todo: might want to find a more efficient way to redo this.
+          //shortcut - still redo this.
           key = key.split('.');
           var curr = [key.shift()];
-          for(; key.length > 0; curr = [key.shift()])//length - 1 because if we go to length then obj[i] will be primitive and will not change obj[i], not a reference
+          for(; key.length > 0; curr = [key.shift()])
               var index = getIndex(curr), obj = (index !== -1) ? obj[curr[0]][index] : obj[curr[0]];
           var index = getIndex(curr);
           if(index !== -1)
               obj = obj[curr[0]], curr[0] = index;
+          key = curr[0];
 
-          bindobj(obj, curr[0], elementTypeBundle(htmlScope, identifiers));
+          if(typeof obj[key] === 'object' && !lowest){
+              reduce(obj[key], scopes, id); continue;
+          }
+
+          bindobj(obj, key, id);
       }
   }
 
@@ -118,40 +124,43 @@
       });})();
   }
 
-  function elementTypeBundle(htmlScope, identifiers){
-      var els = [];
-      for(var i = htmlScope.length-1; i >= 0; --i){
-          var scope = htmlScope[i];
-          for(var j = identifiers.length-1; j >= 0; --j){
-              var id = identifiers[j];
-              var el, type, callback;
-              
-              if(id.constructor === LINK)
-                  el = bundle(scope, id['element'], type = id['type'], callback = id['callback']);
-              else if(typeof id === 'string' || isElement(id))
-                  el = bundle(scope, id, type);
-              else
-                  throw 'error, object not in right form'
-              els = els.concat(el);
+  //TODO: maybe make scope element queriable as well?
+  function bundle(scopes, identifiers){
+      var elements, type, callback;
+      
+      var arr = [];
+      if(identifiers.constructor !== Array && identifiers.constructor !== HTMLCollection)   identifiers = [identifiers];
+      for(var i = identifiers.length-1; i >= 0; --i){
+          var id = identifiers[i];
+          
+          //if array?
+          
+          if(isElement(id)){
+              arr.push({'e' : id, 't' : type || getDefaultAttribute(id.tagName), 'c': undefined}); continue;
+          }
+          if(id.constructor === LINK){
+              type = id['t'];
+              callback = id['c'];
+              id = id['e'];
+          }
+          
+          if(typeof id === 'string'){
+              var scopelen = scopes.length;
+              for(var j = 0; j < scopelen; ++j){
+                  elements = id;
+                  if(typeof elements === 'string')
+                      elements = scopes[j].querySelectorAll(elements);
+                  else if(elements.constructor !== Array)
+                      throw elements
+                  
+                  var elementlen = elements.length;
+                  for(var k = 0; k < elementlen; ++k)
+                      arr.push({'e' : elements[k], 't' : type || getDefaultAttribute(elements[k].tagName), 'c': callback});
+              }
+              continue;
           }
       }
-      return els;
-  }
-
-  //TODO: maybe make scope element queriable as well?
-  function bundle(scope, query, type, callback){
-      var group;
-      if(typeof query === 'string')
-          group = scope.querySelectorAll(query);
-      else if(isElement(query))
-          group = [query];
-      else
-          throw 'error'
-
-      var b = [];
-      for(var i = group.length-1; i >= 0; --i)
-          b.push({'e' : group[i], 't' : type || getDefaultAttribute(group[i].tagName), 'c': callback});
-      return b;
+      return arr;
   }
 
   function getIndex(str, i = 0){
@@ -169,6 +178,7 @@
 
   exports.link = link;
   exports.Bind = Bind;
+  exports.reduce = reduce;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
