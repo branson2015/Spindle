@@ -15,6 +15,8 @@
 
     <div class = 'container'>
         <input>
+        <input>
+        <input>
         <p>2</p>
         <p id = 'a3'>3</p>
         <p class = 'a4'>4</p>
@@ -51,7 +53,7 @@
       
       var mapping = {
         inputTag: Spindle.link('input', 'value', (v)=>{console.log(v)}),
-        'ptags.p2Tag': Spindle.link({elements: 'p:first-of-type', type: 'innerHTML', callback: undefined}),
+        'ptags.p2Tag': Spindle.link({elements: 'p:first-of-type', type: 'innerHTML'}),
         ptags:{
           p3Tag: '#a3',
           p4Tags: '.a4',

@@ -1,14 +1,13 @@
 var Ctor = (function(global){
-
     function iCtor(args){    //iCtor is actually an object.
         if (!this || this === global) {
             return new iCtor(args);
         }
         return this;
     }
-
     return iCtor;
 })(this);
+
 
 /*
 upon executing the Ctor function, this === global
@@ -45,4 +44,10 @@ var Ctor = function(args){
 var Ctor = function(args){
     var privateConstructor = function(args){/*this.foo = bar*/}
     return new privateConstructor(args);
+}
+
+//super simple:
+
+var Ctor = function(args){
+    return new ((args)=>{/*this.foo = bar*/})(args);
 }
