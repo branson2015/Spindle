@@ -27,6 +27,7 @@
         <p class = 'a6'>9</p>
         <p id = 'a10'>10</p>
         <p id = 'a11'>11</p>
+        <p id = 'a12'>12</p>
     </div>
 
     <script>
@@ -68,6 +69,8 @@
         //'complicated.object[2].embedded.value': '#a10, #a11'
       }
       Spindle.Bind(obj, mapping, scopes);
+
+      obj.inputTag = Spindle.ReBind('#a12');
 
     </script>
   </body>

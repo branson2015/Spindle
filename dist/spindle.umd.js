@@ -45,13 +45,35 @@
     return defaultInteractMap[elementName.toLowerCase()] || 'input';
   }
 
+  function unbind(obj, key, els){
+      var val = obj[key];
+      delete obj[key];
+      obj[key] = val;
+      for(var i = els.length-1; i >= 0; --i){
+          els[i].e.removeEventListener(els[i].l, els[i].s, true);
+          delete els[i].s;
+      }
+  }
+
+  var OPS = function(op){ this.c = op; };//operation selector class
+
+  function UnBind(){ return new OPS(unbind); }
+
+  function ReBind(element, type, callback){
+      return new OPS((obj, key, els)=>{  
+          unbind(obj, key, els);
+          var mapping = {};
+          mapping[key] = Spindle.Link(element, type, callback);
+          Spindle.Bind(obj, mapping);
+      });
+  }
+
   //TODO: make get function that returns which element(s) the object is bound to
   //make different ways of binding function (auto create object, make window the htmlScope, etc)
-  //make unbind/rebind >>functions<<
 
   /****/ function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
   function Link(e, t, c){ return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c); }//TODO: do type checking here?
-  function Bind(object, mapping, htmlScope){ reduce(object, mapping, toElements(htmlScope)); }
+  function Bind(object, mapping, htmlScope = document){ reduce(object, mapping, toElements(htmlScope)); }
 
   function reduce(object, mapping, scopes){
       for(var key in mapping){
@@ -82,16 +104,18 @@
       
       //set the eventListeners on the correct type (if applies)TODO: make only ONE object have a callback function, otherwise it will fire for every other attached object
       for(var i = els.length-1; i >= 0; --i){
-          var listenType = getDefaultInteract(els[i].e.tagName);
-          if(listenType === 'input')   ((i)=>{els[i].e.addEventListener(listenType, (event)=>{obj[key] = els[i].e[els[i].t];});})(i);//TODO: make this more encompassing of input types
+          ((i)=>{
+              function set(event){obj[key] = els[i].e[els[i].t];}
+              var listenType = getDefaultInteract(els[i].e.tagName);
+              if(listenType === 'input'){//TODO: make this more encompassing of input types
+                  els[i].l = listenType, els[i].s = set, els[i].e.addEventListener(listenType, els[i].s, true);}
+          })(i);
       }
 
-      (()=>{
-          var val = value;
-          Object.defineProperty(obj, key, {
-              get: ()=>{return val;  },
-              set: (v)=>{val = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v, els[i].e, els[i].t, i);} },
-      });})();
+      Object.defineProperty(obj, key, {
+          get: ()=>{ return value; },
+          set: (v)=>{ if(v instanceof OPS) return v.c(obj, key, els); value = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v, els[i].e, els[i].t, i);} },
+      });
   }
 
   function bundle(scopes, ids){
@@ -121,12 +145,13 @@
       if(object === 'scope')                      return [scope];
       else if(typeof object === 'string')         return Array.from(scope.querySelectorAll(object));
       else if(object instanceof HTMLCollection)   return Array.from(object);
-      else if(object instanceof HTMLElement)      return [object];
+      else if(object instanceof HTMLElement || object instanceof HTMLDocument)      return [object];
   }
 
   exports.Link = Link;
   exports.Bind = Bind;
-  exports.reduce = reduce;
+  exports.UnBind = UnBind;
+  exports.ReBind = ReBind;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

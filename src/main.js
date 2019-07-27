@@ -1,15 +1,15 @@
 import * as Att from './attributes.js'
 import * as Aux from './Auxillary.js'
+export {UnBind, ReBind} from './Auxillary.js';
 
 //TODO: make get function that returns which element(s) the object is bound to
 //make different ways of binding function (auto create object, make window the htmlScope, etc)
-//make unbind/rebind >>functions<<
 
 /****/ function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
 export function Link(e, t, c){ return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c); }//TODO: do type checking here?
-export function Bind(object, mapping, htmlScope){ reduce(object, mapping, toElements(htmlScope)); }
+export function Bind(object, mapping, htmlScope = document){ reduce(object, mapping, toElements(htmlScope)); }
 
-export function reduce(object, mapping, scopes){
+function reduce(object, mapping, scopes){
     for(var key in mapping){
         var obj = object, id = mapping[key];
 
@@ -38,16 +38,18 @@ function bindobj(obj, key, els){
     
     //set the eventListeners on the correct type (if applies)TODO: make only ONE object have a callback function, otherwise it will fire for every other attached object
     for(var i = els.length-1; i >= 0; --i){
-        var listenType = Att.getDefaultInteract(els[i].e.tagName);
-        if(listenType === 'input')   ((i)=>{els[i].e.addEventListener(listenType, (event)=>{obj[key] = els[i].e[els[i].t];});})(i);//TODO: make this more encompassing of input types
+        ((i)=>{
+            function set(event){obj[key] = els[i].e[els[i].t];}
+            var listenType = Att.getDefaultInteract(els[i].e.tagName);
+            if(listenType === 'input'){//TODO: make this more encompassing of input types
+                els[i].l = listenType, els[i].s = set, els[i].e.addEventListener(listenType, els[i].s, true);}
+        })(i);
     }
 
-    (()=>{
-        var val = value;
-        Object.defineProperty(obj, key, {
-            get: ()=>{return val;  },
-            set: (v)=>{val = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v, els[i].e, els[i].t, i)} },
-    });})();
+    Object.defineProperty(obj, key, {
+        get: ()=>{ return value; },
+        set: (v)=>{ if(v instanceof Aux.OPS) return v.c(obj, key, els); value = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v, els[i].e, els[i].t, i)} },
+    });
 }
 
 function bundle(scopes, ids){
@@ -77,5 +79,5 @@ function toElements(object, scope = document){
     if(object === 'scope')                      return [scope];
     else if(typeof object === 'string')         return Array.from(scope.querySelectorAll(object));
     else if(object instanceof HTMLCollection)   return Array.from(object);
-    else if(object instanceof HTMLElement)      return [object];
+    else if(object instanceof HTMLElement || object instanceof HTMLDocument)      return [object];
 }
