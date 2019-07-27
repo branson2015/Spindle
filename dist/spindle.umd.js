@@ -48,18 +48,12 @@
   //TODO: make get function that returns which element(s) the object is bound to
   //make different ways of binding function (auto create object, make window the htmlScope, etc)
   //make unbind/rebind >>functions<<
-  //consider using link object for everything, as it provides type safety
 
-  function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
-  function link(e, t, c){  //TODO: do type checking here
-      return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c);
-  }
+  /****/ function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
+  function Link(e, t, c){ return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c); }//TODO: do type checking here?
+  function Bind(object, mapping, htmlScope){ reduce(object, mapping, toElements(htmlScope)); }
 
-  function Bind(object, htmlScope, mapping){
-      reduce(object, toElements(htmlScope), mapping);
-  }
-
-  function reduce(object, scopes, mapping){
+  function reduce(object, mapping, scopes){
       for(var key in mapping){
           var obj = object, id = mapping[key];
 
@@ -70,7 +64,7 @@
           if(typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection)    //"primitive types" that should not be further recursed
               bindobj(obj, key, bundle(scopes, id));
           else
-              reduce(obj[key], scopes, id);   
+              reduce(obj[key], id, scopes);   
       }
   }
 
@@ -89,41 +83,30 @@
       //set the eventListeners on the correct type (if applies)TODO: make only ONE object have a callback function, otherwise it will fire for every other attached object
       for(var i = els.length-1; i >= 0; --i){
           var listenType = getDefaultInteract(els[i].e.tagName);
-          if(listenType === 'input')   //TODO: make this more encompassing of input types
-              ((i)=>{els[i].e.addEventListener(listenType, (event)=>{obj[key] = els[i].e[els[i].t];});})(i);
+          if(listenType === 'input')   ((i)=>{els[i].e.addEventListener(listenType, (event)=>{obj[key] = els[i].e[els[i].t];});})(i);//TODO: make this more encompassing of input types
       }
 
       (()=>{
           var val = value;
           Object.defineProperty(obj, key, {
               get: ()=>{return val;  },
-              set: (v)=>{val = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v);} },
+              set: (v)=>{val = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v, els[i].e, els[i].t, i);} },
       });})();
   }
 
-  //TODO: maybe make scope element queriable as well?
-  function bundle(scopes, identifiers){
-      var arr = [];
+  function bundle(scopes, ids){
+      var elements = [], types, callbacks;
 
-      identifiers = identifiers instanceof LINK ? [identifiers]: toElements(identifiers);
-      for(var i = identifiers.length-1; i >= 0; --i){
-          var id = identifiers[i];
-          if(id instanceof LINK)
-              arr = arr.concat(toEls(toElements(id.e), id.t, id.c));
-          else
-              arr = arr.concat(toEls(toElements(id)));
-      }
-      return arr;
-  }
-
-  function toElements(object){    
-      if(typeof object === 'string')              return Array.from(document.querySelectorAll(object));
-      else if(object instanceof HTMLCollection)   return Array.from(object);
-      else if(object instanceof HTMLElement)      return [object];
-      else if(object[0] instanceof HTMLElement)   return object;
-  }
-
-  function toEls(elements, types, callbacks = []){
+      //TODO: this is kinda ugly, might wanna refactor a lil.. dunno how..
+      if(ids instanceof LINK) types = ids.t, callbacks = ids.c, ids = [ids.e];    
+      else if(typeof ids === 'string') ids = [ids]; 
+      if(Array.isArray(ids))
+          for(var j = 0, jlen = scopes.length; j < jlen; ++j)
+              for(var i = 0, ilen = ids.length; i < ilen; ++i)
+                  elements = elements.concat(toElements(ids[i], scopes[j]));
+      else   //only fallbacks for HTMLCollection and HTMLElement here
+          elements = toElements(ids);//this is kind of a waste of the function
+              
       var els = [];
       for(var i = elements.length-1; i >= 0; --i)
           els.push({
@@ -134,7 +117,14 @@
       return els;
   }
 
-  exports.link = link;
+  function toElements(object, scope = document){    
+      if(object === 'scope')                      return [scope];
+      else if(typeof object === 'string')         return Array.from(scope.querySelectorAll(object));
+      else if(object instanceof HTMLCollection)   return Array.from(object);
+      else if(object instanceof HTMLElement)      return [object];
+  }
+
+  exports.Link = Link;
   exports.Bind = Bind;
   exports.reduce = reduce;
 

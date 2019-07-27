@@ -39,7 +39,7 @@
           p2Tag: 'value2',
           p3Tag: 'value3',
           p4Tags: ['value4', 'value4', 'value5'],//this should be an array....
-          p5Tags: [], 
+          p5Tags: ['value6', 'value7'], 
           p6Tags: 'value8 and value9'
         },
         complicated: {
@@ -52,8 +52,8 @@
       }
       
       var mapping = {
-        inputTag: Spindle.link('input', 'value', (v)=>{console.log(v)}),
-        'ptags.p2Tag': Spindle.link({elements: 'p:first-of-type', type: 'innerHTML'}),
+        inputTag: Spindle.Link('input', 'value', [(v, e)=>{console.log(e)}]),
+        'ptags.p2Tag': Spindle.Link({elements: 'p:first-of-type', type: 'innerHTML'}),
         ptags:{
           p3Tag: '#a3',
           p4Tags: '.a4',
@@ -62,12 +62,12 @@
         },
         'complicated.object[2]': {
           embedded: {
-            'value': '#a10, #a11'
+            'value': [document.getElementById('a10'), document.getElementById('a11')]
           }
         }
         //'complicated.object[2].embedded.value': '#a10, #a11'
       }
-      Spindle.Bind(obj, scopes, mapping);
+      Spindle.Bind(obj, mapping, scopes);
 
     </script>
   </body>
