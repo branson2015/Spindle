@@ -66,7 +66,7 @@ function bundle(scopes, ids){
         elements = toElements(ids);//this is kind of a waste of the function
             
     var els = [];
-    for(var i = elements.length-1; i >= 0; --i)
+    for(var i = 0, ilen = elements.length; i < ilen; ++i)
         els.push({
             e: elements[i],
             t: Array.isArray(types) ? types[i] : types || Att.getDefaultAttribute(elements[i].tagName), 
