@@ -2,13 +2,9 @@
 # Spindle.js
 A JavaScript library for front-end development.
 
+## Example Usage
 
-
-
-
-
-example usage:
-
+```javascript
 var obj = {p1: 'val1', p2: 'val2', p3: undefined, p4: 'val4', p5: {p5-1: 'test', p5-2: 'test2'},....};
 var element = document.getElementById("test");
 bind(obj, element, {
@@ -32,7 +28,10 @@ bind(obj, element, {
         p10_1: '#id' --- same as 'p10[0].p10_1': '#id'
     ]
 
-
-    
     p11: {type: 'className', fn: function}
 });
+```
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
