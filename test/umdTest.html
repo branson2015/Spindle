@@ -65,10 +65,11 @@
           embedded: {
             'value': [document.getElementById('a10'), document.getElementById('a11')]
           }
-        }
+        },
         //'complicated.object[2].embedded.value': '#a10, #a11'
+        n1: {n2: '#a12'}
       }
-      //Spindle.Bind(obj, mapping, scopes);
+      var test = Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes, 'modifiable': true});
 
       //obj.inputTag = Spindle.ReBind('#a12');
 

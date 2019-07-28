@@ -68,25 +68,37 @@
       });
   }
 
-  //TODO: make get function that returns which element(s) the object is bound to
-  //make different ways of binding function (auto create object, make window the htmlScope, etc)
+  //AddBind
+  //RemoveBind
+  //ChangeBind
+  //GetBound
 
-  /****/ function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
+  //experiment with putting getters/setters on EVERY object for more complex assignment options? - trickle-down assign in setter?
+
+  function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
   function Link(e, t, c){ return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c); }//TODO: do type checking here?
-  function Bind(object, mapping, htmlScope = document){ reduce(object, mapping, toElements(htmlScope)); }
 
-  function reduce(object, mapping, scopes){
+  function Bind(options){    
+      var object = options['object'];
+      if(object === undefined)    object = {}, options['modifiable'] = true;
+      reduce(object, options['mapping'], toElements(options['scopes'] || document), options['modifiable'] || true);
+      return object;
+   }
+
+  function reduce(object, mapping, scopes, modifiable){
       for(var key in mapping){
           var obj = object, id = mapping[key];
 
           var karr = key.split(/[\.\[\]\'\"]/).filter(p => p);
           key = karr.pop();
-          obj = karr.reduce((o, p) => o[p] , obj);
+          karr.reduce((o, p) => obj = (o[p] === undefined && modifiable) ? {} : o[p], obj);
           
-          if(typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection)    //"primitive types" that should not be further recursed
-              bindobj(obj, key, bundle(scopes, id));
-          else
-              reduce(obj[key], id, scopes);   
+          if(IsPrimitive$1(id)) 
+              bindobj(obj, key, bundle(obj, key, scopes, id));
+          else{
+              if(obj[key] === undefined && modifiable)  obj[key] = {};
+              reduce(obj[key], id, scopes, modifiable);   
+          }
       }
   }
 
@@ -101,16 +113,6 @@
               els[i].e[els[i].t] = value;
       else if(els.length == 1)  //if only 1 element total is present and value is undefined, assign value to element
           value = els[0].e[els[0].t];
-      
-      //set the eventListeners on the correct type (if applies)TODO: make only ONE object have a callback function, otherwise it will fire for every other attached object
-      for(var i = els.length-1; i >= 0; --i){
-          ((i)=>{
-              function set(event){obj[key] = els[i].e[els[i].t];}
-              var listenType = getDefaultInteract(els[i].e.tagName);
-              if(listenType === 'input'){//TODO: make this more encompassing of input types
-                  els[i].l = listenType, els[i].s = set, els[i].e.addEventListener(listenType, els[i].s, true);}
-          })(i);
-      }
 
       Object.defineProperty(obj, key, {
           get: ()=>{ return value; },
@@ -118,7 +120,7 @@
       });
   }
 
-  function bundle(scopes, ids){
+  function bundle(obj, key, scopes, ids){
       var elements = [], types, callbacks;
 
       //TODO: this is kinda ugly, might wanna refactor a lil.. dunno how..
@@ -130,14 +132,21 @@
                   elements = elements.concat(toElements(ids[i], scopes[j]));
       else   //only fallbacks for HTMLCollection and HTMLElement here
           elements = toElements(ids);//this is kind of a waste of the function
-              
+
       var els = [];
-      for(var i = 0, ilen = elements.length; i < ilen; ++i)
+      for(var i = 0, ilen = elements.length; i < ilen; ++i){
+          function set(event){obj[key] = els[i].e[els[i].t];}
+          var listenType = getDefaultInteract(elements[i].tagName);
+          var L, S;
+          if(listenType === 'input')  S = set, L = listenType, elements[i].addEventListener(listenType, S, true);
           els.push({
               e: elements[i],
               t: Array.isArray(types) ? types[i] : types || getDefaultAttribute(elements[i].tagName), 
-              c: Array.isArray(callbacks) ? callbacks[i] : callbacks
+              c: Array.isArray(callbacks) ? callbacks[i] : callbacks,
+              l: L,
+              s: S
           });
+      }
       return els;
   }
 
@@ -148,6 +157,9 @@
       else if(object instanceof HTMLElement || object instanceof HTMLDocument)      return [object];
   }
 
+  function IsPrimitive$1(id){ return typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
+
+  exports.LINK = LINK;
   exports.Link = Link;
   exports.Bind = Bind;
   exports.UnBind = UnBind;
