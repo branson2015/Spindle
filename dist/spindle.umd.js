@@ -83,7 +83,7 @@
 
           var karr = key.split(/[\.\[\]\'\"]/).filter(p => p);
           key = karr.pop();
-          karr.reduce((o, p) => obj = (o[p] === undefined) ? {} : o[p], obj);
+          obj = karr.reduce((o, p) => o[p] || (o[p] = {}), obj);
           
           if(IsPrimitive(id)) 
               bindobj(obj, key, bundle(obj, key, scopes, id));

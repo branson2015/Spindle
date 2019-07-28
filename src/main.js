@@ -4,6 +4,7 @@ export {UnBind, ReBind} from './Auxillary.js'
 export {getDefaultAttribute} from './attributes.js'
 
 //TODO: experiment with putting getters/setters on EVERY object for more complex assignment options? - trickle-down assign in setter?
+//todo: fix setting objects with arrays vs setting them with primitives that will turn into arrays
 
 export function LINK(elements, types, callbacks){ this.e = elements,   this.t = types, this.c = callbacks; }
 export function Link(e, t, c){ return new LINK(e['elements'] || e, e['types'] || t, e['callbacks'] || c); }
@@ -20,7 +21,7 @@ function reduce(object, mapping, scopes){
 
         var karr = key.split(/[\.\[\]\'\"]/).filter(p => p);
         key = karr.pop();
-        karr.reduce((o, p) => obj = (o[p] === undefined) ? {} : o[p], obj);
+        obj = karr.reduce((o, p) => o[p] || (o[p] = {}), obj);
         
         if(IsPrimitive(id)) 
             bindobj(obj, key, bundle(obj, key, scopes, id));

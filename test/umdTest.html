@@ -61,12 +61,12 @@
           p5Tags: '.a5',
           p6Tags: document.getElementsByClassName('a6')
         },
-        'complicated.object[2]': {
+        /*'complicated.object[2]': {
           embedded: {
             'value': [document.getElementById('a10'), document.getElementById('a11')]
           }
-        }
-        //'complicated.object[2].embedded.value': '#a10, #a11'
+        },*/
+        'complicated.object[2].embedded.value': '#a10, #a11'
       }
       var obj = Spindle.Bind({'mapping': mapping, 'scopes': scopes});
       //obj.inputTag = Spindle.ReBind('#a12');
