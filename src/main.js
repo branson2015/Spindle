@@ -1,11 +1,12 @@
 import * as Att from './attributes.js'
 import * as Aux from './Auxillary.js'
-export {UnBind, ReBind} from './Auxillary.js';
+export {UnBind, ReBind} from './Auxillary.js'
+export {getDefaultAttribute} from './attributes.js'
 
 //experiment with putting getters/setters on EVERY object for more complex assignment options? - trickle-down assign in setter?
 
 export function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
-export function Link(e, t, c){ return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c); }//TODO: do type checking here?
+export function Link(e, t, c){ return new LINK(e['elements'] || e, e['types'] || t, e['callbacks'] || c); }//TODO: do type checking here?
 
 export function Bind(options){    
     var object = options['object'];
@@ -67,7 +68,8 @@ function bundle(obj, key, scopes, ids){
         function set(event){obj[key] = els[i].e[els[i].t];}
         var listenType = Att.getDefaultInteract(elements[i].tagName);
         var L, S;
-        if(listenType === 'input')  S = set, L = listenType, elements[i].addEventListener(listenType, S, true);
+        if(listenType === 'input')  //TODO: make this more encompassing of input types
+            S = set, L = listenType, elements[i].addEventListener(listenType, S, true);
         els.push({
             e: elements[i],
             t: Array.isArray(types) ? types[i] : types || Att.getDefaultAttribute(elements[i].tagName), 

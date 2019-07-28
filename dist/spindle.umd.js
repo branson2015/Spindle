@@ -76,7 +76,7 @@
   //experiment with putting getters/setters on EVERY object for more complex assignment options? - trickle-down assign in setter?
 
   function LINK(element, type, callback){ this.e = element,   this.t = type, this.c = callback; }
-  function Link(e, t, c){ return new LINK(e['elements'] || e, e['type'] || t, e['callback'] || c); }//TODO: do type checking here?
+  function Link(e, t, c){ return new LINK(e['elements'] || e, e['types'] || t, e['callbacks'] || c); }//TODO: do type checking here?
 
   function Bind(options){    
       var object = options['object'];
@@ -93,7 +93,7 @@
           key = karr.pop();
           karr.reduce((o, p) => obj = (o[p] === undefined && modifiable) ? {} : o[p], obj);
           
-          if(IsPrimitive$1(id)) 
+          if(IsPrimitive(id)) 
               bindobj(obj, key, bundle(obj, key, scopes, id));
           else{
               if(obj[key] === undefined && modifiable)  obj[key] = {};
@@ -138,7 +138,8 @@
           function set(event){obj[key] = els[i].e[els[i].t];}
           var listenType = getDefaultInteract(elements[i].tagName);
           var L, S;
-          if(listenType === 'input')  S = set, L = listenType, elements[i].addEventListener(listenType, S, true);
+          if(listenType === 'input')  //TODO: make this more encompassing of input types
+              S = set, L = listenType, elements[i].addEventListener(listenType, S, true);
           els.push({
               e: elements[i],
               t: Array.isArray(types) ? types[i] : types || getDefaultAttribute(elements[i].tagName), 
@@ -157,13 +158,14 @@
       else if(object instanceof HTMLElement || object instanceof HTMLDocument)      return [object];
   }
 
-  function IsPrimitive$1(id){ return typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
+  function IsPrimitive(id){ return typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
 
   exports.LINK = LINK;
   exports.Link = Link;
   exports.Bind = Bind;
   exports.UnBind = UnBind;
   exports.ReBind = ReBind;
+  exports.getDefaultAttribute = getDefaultAttribute;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
