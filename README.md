@@ -43,7 +43,7 @@ var mapping = {
 
 var scopes = document.getElementsByClassName('className3');
 
-Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes, 'modifiable': false}) 
+Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes}) 
 ```
 # Explanation
 ### Spindle.Bind(options)
@@ -55,8 +55,6 @@ This is the heart of the library that does all the heavy lifting of binding obje
 	- The object that links objects from **object** to DOM Elements
 - **scopes**: *Not Required*
 	- If specified, all mapped DOM Elements must appear as some descendant of the scopes specified
-- **modifiable**: *Not Required* - May become depricated
-	- If **object** is not specified, defaults to True. Creates new properties in **object** if they are not already defined and are present in **mapping**
 
 ### Spindle.Link(elements, types, callbacks)
 - **Elements**: *Required*
@@ -96,7 +94,7 @@ obj.property2 = ReBind(/*primitives*/)
 - Dynamic Binding and UnBinding of arbitrarily complex object properties to DOM Element attributes
 - One-to-One or One-to-Many bindings
 - Auto-generation of binded objects
-- Extremely small footprint!  < 2kb when minified, under 100 lines of code!
+- Extremely small footprint!  < 2kb when minified, under 200 lines of code!
 - No Dependencies!
 
 # Requirements
@@ -104,6 +102,7 @@ The version of Spindle currently uses ES6 styled Arrow Functions. Fully ES5-comp
 - Array.prototype.reduce()
 - Object.DefinePropterty()
 - Array.isArray()
+- Array.from()
 - Element.querySelectorAll()
 
 ## License

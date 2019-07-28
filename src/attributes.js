@@ -32,10 +32,3 @@ export var defaultAttributeMap = {
 export function getDefaultAttribute(elementName) {
   return defaultAttributeMap[elementName.toLowerCase()] || 'innerHTML';
 }
-
-
-export var defaultInteractMap = {};
-
-export function getDefaultInteract(elementName) {
-  return defaultInteractMap[elementName.toLowerCase()] || 'input';
-}

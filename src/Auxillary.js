@@ -17,7 +17,7 @@ export function ReBind(element, type, callback){
         unbind(obj, key, els);
         var mapping = {};
         mapping[key] = Spindle.Link(element, type, callback);
-        Spindle.Bind(obj, mapping);
+        Spindle.Bind({'object': obj, 'mapping': mapping});
     });
 }
 

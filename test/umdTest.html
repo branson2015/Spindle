@@ -6,50 +6,70 @@
     <script src="../dist/spindle.umd.js"></script>
   </head>
   <body>
-    <div class='className3'>
-      <p id='someId'></p>                             <!--Links to Property1-->
-      <input class='className', value='unmodified'>   <!--Links to Property2-->
-      <div >property3</div>                           <!--Links to Property3 and property4.subproperty1-->
-      <div class='className0'></div>                  <!--Links to Property3-->
-      <p class='className2'></p>                      <!--Links to Property3 and property4.subproperty2-->
-      <p id="id1"></p>                                <!--Links to Property3 and property4.subproperty3-->
+    <div class = 'container'>
+      <input>
+      <p>2</p>
+      <p id = 'a3'>3</p>
+      <p class = 'a4'>4</p>
+    </div>
+
+    <div class = 'container'>
+        <input>
+        <input>
+        <input>
+        <p>2</p>
+        <p id = 'a3'>3</p>
+        <p class = 'a4'>4</p>
+        <p class = 'a4'>5</p>
+        <p class = 'a5'>6</p>
+        <p class = 'a5'>7</p>
+        <p class = 'a6'>8</p>
+        <p class = 'a6'>9</p>
+        <p id = 'a10'>10</p>
+        <p id = 'a11'>11</p>
+        <p id = 'a12'>12</p>
     </div>
 
     <script>
       
-     //arbitrarily complicated Object
-var obj = {
-	property1: 'value 1',	
-	property2: undefined,
-	property3: [],	//defaults to one-to-one binding
-	property4: {
-		arr: [
-			{subProperty1: 'value 4-1'},
-			{subProperty2: 'value 4-2'},
-			'value 4-3'
-		]
-	}
-}
-
-//mapping descr
-var mapping = {		
-	property1: document.getElementById('someId'),		//one to one binding
-	property2: '.className',							//CSS-Selector
-	property3: document.getElementsByTagName('div')[1],
-	property4: {
-		arr: [
-			{subProperty1: Spindle.Link({'elements': '.className0', 'types': 'innerHTML', 'callbacks': (v)=>{console.log(v);}})}
-		]
-	},
-	//one-to-many binding to .className2's innerHTML attribute with callback function on any value change
-	'property4.arr[1].subProperty2': Spindle.Link(document.getElementsByClassName('className2'), 'innerHTML', (v)=>{console.log(v)}),
-	'property4.arr[2]': '#id1'
-}
-
-var scopes = document.getElementsByClassName('className3');
-
-Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes, 'modifiable': false}) 
-
+      var scopes = ".container:nth-child(2)";
+      
+      var obj = {
+        inputTag: 'value1',
+        ptags:{
+          p2Tag: 'value2',
+          p3Tag: 'value3',
+          p4Tags: ['value4', 'value4', 'value5'],//this should be an array....
+          p5Tags: ['value6', 'value7'], 
+          p6Tags: 'value8 and value9'
+        },
+        complicated: {
+          object: [1, 2, {
+            embedded: {
+              value: ['value10', 'value11'] //fixing above should also fix this. hopefully.
+            }
+          }]
+        }
+      }
+      
+      var mapping = {
+        inputTag: Spindle.Link('input', 'value', [(v, e)=>{console.log(e)}]),
+        'ptags.p2Tag': Spindle.Link({elements: 'p:first-of-type', type: 'innerHTML'}),
+        ptags:{
+          p3Tag: '#a3',
+          p4Tags: '.a4',
+          p5Tags: '.a5',
+          p6Tags: document.getElementsByClassName('a6')
+        },
+        'complicated.object[2]': {
+          embedded: {
+            'value': [document.getElementById('a10'), document.getElementById('a11')]
+          }
+        }
+        //'complicated.object[2].embedded.value': '#a10, #a11'
+      }
+      Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes});
+      obj.inputTag = Spindle.ReBind('#a12');
     </script>
   </body>
 </html>
