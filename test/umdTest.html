@@ -68,8 +68,8 @@
         }
         //'complicated.object[2].embedded.value': '#a10, #a11'
       }
-      Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes});
-      obj.inputTag = Spindle.ReBind('#a12');
+      var obj = Spindle.Bind({'mapping': mapping, 'scopes': scopes});
+      //obj.inputTag = Spindle.ReBind('#a12');
     </script>
   </body>
 </html>

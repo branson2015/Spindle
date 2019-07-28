@@ -109,6 +109,7 @@
       Object.defineProperty(obj, key, {
           get: ()=>{ return value; },
           set: (v)=>{ if(v instanceof OPS) return v.c(obj, key, els); value = v; for(var i = els.length-1; i >= 0; --i){els[i].e[els[i].t] = v; if(els[i].c) els[i].c(v, els[i].e, els[i].t, i);} },
+          configurable: true
       });
   }
 
