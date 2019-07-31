@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Spindle Test</title>
+  </head>
+  <body>
+    <script>
+
+function objectNormalize(obj){
+    var obj2 = {};
+    (function reduce(obj, object2){
+        for(var prop in obj){
+            var obj2 = object2;
+            var parr = prop.split(/[\.\[\]\'\"]/).filter(p => p);
+            prop = parr.pop();
+            obj2 = parr.reduce((o, p) => o[p] || (o[p] = {}), obj2);
+            reduce(obj[prop], obj2[prop] || (obj2[prop] = obj[prop]));
+        }
+    })(obj, obj2);
+    return obj2;
+  }
+
+  function IsPrimitive(id){ return typeof id === 'string' || id instanceof HTMLElement || id instanceof HTMLCollection; }
+
+        var obj = {
+          'complicated.object[2].embedded.value0': 0,
+          'complicated.object[2].embedded.value[3]': '3',
+          'complicated.object[0]': 'ok',
+
+          'complicated.object': {
+            '2': {
+              embedded: {value3: [4,5,6] }
+            }
+          },
+          
+          complicated: {
+              object: [1,2,{
+                  embedded:{
+                      value: [1,2]
+                  }
+              }]
+          }
+        };
+        obj = objectNormalize(obj);
+        console.log(obj);
+
+    </script>
+  </body>
+</html>
