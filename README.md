@@ -103,6 +103,7 @@ The version of Spindle currently uses ES6 styled Arrow Functions. Fully ES5-comp
 - Object.DefinePropterty()
 - Array.isArray()
 - Array.from()
+- Array.filter()
 - Element.querySelectorAll()
 
 ## License

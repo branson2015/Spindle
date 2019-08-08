@@ -50,7 +50,18 @@
 
   var OPS = function(op){ this.c = op; };//operation selector class
 
-  function UnBind(){ return new OPS(unbind); }
+
+  //TODO: finish this crap
+  function UnBind(elements){ return new OPS((obj, key, els)=>{
+      if(elements === undefined)
+          for(var i = els.length-1; i >= 0; --i)
+              elements.push(els[i].e);
+      for(var i = elements.length-1; i >= 0; --i)
+          if(elements[i].SpindleBindObj){
+              unbind(elements[i].SpindleBindObj, elements[i].SpindleBindKey, );
+          }
+              
+  });}
 
   function ReBind(element, type, callback){
       return new OPS((obj, key, els)=>{  
@@ -62,11 +73,10 @@
   }
 
   //AddBind
-  //RemoveBind
   //ChangeBind
-  //GetBound
 
   //TODO: experiment with putting getters/setters on EVERY object for more complex assignment options? - trickle-down assign in setter?
+  //fix setting objects with arrays vs setting them with primitives that will turn into arrays - above will handle this
 
   function LINK(elements, types, callbacks){ this.e = elements,   this.t = types, this.c = callbacks; }
   function Link(e, t, c){ return new LINK(e['elements'] || e, e['types'] || t, e['callbacks'] || c); }
@@ -77,27 +87,35 @@
       return object;
    }
 
-  function reduce(object, mapping, scopes){
+  function addSetter(karr, obj, key){
+      if(obj[key] === undefined){
+          Number.isInteger(+karr[0]) ? obj[key] = [] : obj[key] = {};
+          if(obj[key]['test'] === undefined)   obj[key]['test'] = 0;
+          ++obj[key]['test'];
+      }
+      return obj[key];
+  }
+
+   function reduce(object, mapping, scopes){
       for(var key in mapping){
           var obj = object, id = mapping[key];
 
           var karr = key.split(/[\.\[\]\'\"]/).filter(p => p);
-          key = karr.pop();
-          obj = karr.reduce((o, p) => o[p] || (o[p] = {}), obj);
+          var key = karr.shift();
+          for(; karr.length; key = karr.shift())  //create objects/properties to depth if they don't already exist
+              obj = addSetter(karr, obj, key);
+          addSetter(karr, obj, key);
           
           if(IsPrimitive(id)) 
               bindobj(obj, key, bundle(obj, key, scopes, id));
-          else{
-              if(obj[key] === undefined)  obj[key] = {};
+          else
               reduce(obj[key], id, scopes);   
-          }
       }
   }
 
   function bindobj(obj, key, els){
       var value = obj[key];
 
-      //this code decides on what the value for the elements should be
       if(value !== undefined && Array.isArray(value)){  //establish 1 to 1 binding (recurse)
           for(var i = els.length-1; i >= 0; --i){ bindobj(value, i, [els[i]]); }  return;
       }else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
@@ -121,6 +139,7 @@
 
       var els = [];
       for(var i = 0, S, L, ilen = elements.length; i < ilen; ++i){
+          elements[i].SpindleBindObj = obj, elements[i].SpindleBindKey = key;
           if(elements[i].tagName === 'INPUT'){
               ((i)=>{S = function(event){obj[key] = els[i].e[els[i].t];};})(i);
               L = 'input'; elements[i].addEventListener('input', S, true);

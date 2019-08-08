@@ -8,9 +8,22 @@ function unbind(obj, key, els){
     }
 }
 
+function getOKE(obj, key, els){ return {o: obj, k: key, e: els}}
+
 export var OPS = function(op){ this.c = op; }//operation selector class
 
-export function UnBind(){ return new OPS(unbind); }
+
+//TODO: finish this crap
+export function UnBind(elements){ return new OPS((obj, key, els)=>{
+    if(elements === undefined)
+        for(var i = els.length-1; i >= 0; --i)
+            elements.push(els[i].e);
+    for(var i = elements.length-1; i >= 0; --i)
+        if(elements[i].SpindleBindObj){
+            unbind(elements[i].SpindleBindObj, elements[i].SpindleBindKey, )
+        }
+            
+});}
 
 export function ReBind(element, type, callback){
     return new OPS((obj, key, els)=>{  
@@ -22,6 +35,4 @@ export function ReBind(element, type, callback){
 }
 
 //AddBind
-//RemoveBind
 //ChangeBind
-//GetBound
