@@ -6,6 +6,8 @@ export {getDefaultAttribute} from './attributes.js'
 //TODO: experiment with putting getters/setters on EVERY object for more complex assignment options? - trickle-down assign in setter?
 //fix setting objects with arrays vs setting them with primitives that will turn into arrays - above will handle this
 
+//wrap Object.defineProperties in their own IIFE closures to eliminate unnecessary enclosed variables hanging around
+
 export function LINK(elements, types, callbacks){ this.e = elements,   this.t = types, this.c = callbacks; }
 export function Link(e, t, c){ return new LINK(e['elements'] || e, e['types'] || t, e['callbacks'] || c); }
 
@@ -18,13 +20,27 @@ export function Bind(options){
 function addSetter(karr, obj, key){
     if(obj[key] === undefined){
         Number.isInteger(+karr[0]) ? obj[key] = [] : obj[key] = {}
-        //TODO
+        var value = obj[key];
         Object.defineProperty(obj, key, {
-            get: ()=>{},
-            set: ()=>{}
+            get: ()=>{return value},
+            set: (v)=>{ reduce2(obj[key], v); value = obj[key]; }
         });
     }
     return obj[key];
+}
+
+function reduce2(object, mapping){
+    for(var key in mapping){
+        var obj = object, id = mapping[key];
+
+        var karr = key.split(/[\.\[\]\'\"]/).filter(p => p);
+        var key = karr.shift();
+        for(; karr.length; key = karr.shift())
+            obj = obj[key] || (Number.isInteger(+karr[0]) ? obj[key] = [] : obj[key] = {});
+        
+        if(IsPrimitive(id)) obj[key] = id;
+        else        reduce2(obj[key], id);
+    }
 }
 
  function reduce(object, mapping, scopes){
@@ -35,12 +51,14 @@ function addSetter(karr, obj, key){
         var key = karr.shift();
         for(; karr.length; key = karr.shift())  //create objects/properties to depth if they don't already exist
             obj = addSetter(karr, obj, key);
-        addSetter(karr, obj, key);
+        
         
         if(IsPrimitive(id)) 
             bindobj(obj, key, bundle(obj, key, scopes, id));
-        else
-            reduce(obj[key], id, scopes);   
+        else{
+            addSetter(karr, obj, key);  
+            reduce(obj[key], id, scopes);
+        }
     }
 }
 
@@ -50,8 +68,7 @@ function bindobj(obj, key, els){
     if(value !== undefined && Array.isArray(value)){  //establish 1 to 1 binding (recurse)
         for(var i = els.length-1; i >= 0; --i){ bindobj(value, i, [els[i]]); }  return;
     }else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
-        for(var i = els.length-1; i >= 0; --i)
-            els[i].e[els[i].t] = value;
+        for(var i = els.length-1; i >= 0; --i)  els[i].e[els[i].t] = value;
     else if(els.length == 1)  //if only 1 element total is present and value is undefined, assign value to element
         value = els[0].e[els[0].t];
 
