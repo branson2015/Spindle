@@ -99,7 +99,6 @@ obj.property2 = ReBind(/*primitives*/)
 
 # Requirements
 The version of Spindle currently uses ES6 styled Arrow Functions. Fully ES5-compliant versions of the library can be expected. Polyfills you may need for older standards include:
-- Array.prototype.reduce()
 - Object.DefinePropterty()
 - Array.isArray()
 - Array.from()
