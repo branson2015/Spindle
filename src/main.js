@@ -51,7 +51,7 @@ function bindobj(obj, key, els){
     else value = null;   //if only 1 value and many elements with potentially different values, initialize value to be null
 
     Object.defineProperty(obj, key, {
-        get: function(){ return els[0].rc ? els[0].rc(value) : value; },
+        get: function(){ return value; },
         set: function(v){ 
             if(v instanceof Aux.OPS) return v.c(obj, key, els); 
             value = v; 
@@ -65,16 +65,16 @@ function bindobj(obj, key, els){
 }
 
 function bundle(obj, key, scopes, elements){
-    var types, callbacks, retrieve, transforms;
+    var types, callbacks, retrieves, transforms;
 
-    if(elements instanceof Aux.LINK) types = elements.t, callbacks = elements.c, retrieve = elements.rc, transforms = elements.tc, elements = elements.e;
+    if(elements instanceof Aux.LINK) types = elements.t, callbacks = elements.c, retrieves = elements.rc, transforms = elements.tc, elements = elements.e;
     elements = Aux.toElements(elements, scopes);
     
     var S;
     var els = [];
     for(var i = 0; i < elements.length; ++i){
         if(elements[i].tagName === 'INPUT'){      //maybe get rid of this if statement?
-            (function(i){S = function(event){obj[key] = els[i].e[els[i].t];}})(i)
+            (function(i){S = function(event){var val = els[i].e[els[i].t]; obj[key] = els[i].rc ? els[i].rc(val) : val; els[i].e[els[i].t] = val; }})(i)
             elements[i].addEventListener('input', S, true);
         }
         els.push({
@@ -82,9 +82,9 @@ function bundle(obj, key, scopes, elements){
             t: Array.isArray(types) ? types[i] : types || Att.getDefaultAttribute(elements[i].tagName), 
             c: Array.isArray(callbacks) ? callbacks[i] : callbacks,
             tc: Array.isArray(transforms) ? transforms[i] : transforms,
+            rc: Array.isArray(retrieves) ? retrieves[i] : retrieves,
         });
         elements[i].Spindle = {'obj': obj, 'key': key, 's': S};
     }
-    els[0].rc = retrieve;
     return els;
 }
