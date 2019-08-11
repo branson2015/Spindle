@@ -9,7 +9,7 @@
     <div class = 'container'>
       <input>
       <p>2</p>
-      <p id = 'a3'>3</p>
+      <p class = 'a3'>3</p>
       <p class = 'a4'>4</p>
     </div>
 
@@ -18,7 +18,7 @@
         <input>
         <input>
         <p>2</p>
-        <p id = 'a3'>3</p>
+        <p class = 'a3'>3</p>
         <p class = 'a4'>4</p>
         <p class = 'a4'>5</p>
         <p class = 'a5'>6</p>
@@ -34,7 +34,7 @@
       
       var scopes = ".container:nth-child(2)";
       
-      /*var obj = {
+      var obj = {
         inputTag: 'value1',
         ptags:{
           p2Tag: 'value2',
@@ -50,13 +50,13 @@
             }
           }]
         }
-      }*/
+      }
       
       var mapping = {
-        inputTag: Spindle.Link('input', 'value', [(v, e)=>{console.log(e)}]),
+        inputTag: Spindle.Link({elements: 'input', type: 'value', callbacks: [(v, e)=>{console.log(e)}]}),
         'ptags.p2Tag': Spindle.Link({elements: 'p:first-of-type', type: 'innerHTML'}),
         ptags:{
-          p3Tag: '#a3',
+          p3Tag: '.a3',
           p4Tags: '.a4',
           p5Tags: '.a5',
           p6Tags: document.getElementsByClassName('a6')
@@ -68,8 +68,8 @@
         },
         'complicated.object[2].embedded.value[1]': '#a12'
       }
-      var obj = Spindle.Bind({'mapping': mapping, 'scopes': scopes});
-      //obj.inputTag = Spindle.ReBind('#a12');
+      Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes});
+      obj.inputTag = Spindle.ReBind(Spindle.Link({elements: '#a12'}));
     </script>
   </body>
 </html>
