@@ -35,7 +35,7 @@
       var scopes = ".container:nth-child(2)";
       
       var obj = {
-        inputTag: 'value1',
+        inputTag: ['value1'],
         ptags:{
           p2Tag: 'value2',
           p3Tag: 'value3',
@@ -53,7 +53,7 @@
       }
       
       var mapping = {
-        inputTag: Spindle.Link({elements: 'input', type: 'value', retrieves: (v)=>{return v + '1'}, callbacks: [(v)=>{console.log(v)}]}),
+        inputTag: Spindle.Link({elements: 'input', type: 'value', transforms: (v)=>{return v + '2'}, retrieves: (v)=>{return v + '1'}, callbacks: (v)=>{console.log(v)}}),
         'ptags.p2Tag': Spindle.Link({elements: 'p:first-of-type', type: 'innerHTML'}),
         ptags:{
           p3Tag: '.a3',
@@ -69,6 +69,7 @@
         'complicated.object[2].embedded.value[1]': '#a12'
       }
       Spindle.Bind({'object': obj, 'mapping': mapping, 'scopes': scopes});
+      //obj = Spindle.Bind({'mapping': mapping, 'scopes': scopes});
       //obj.inputTag = Spindle.ReBind(Spindle.Link({elements: '#a12'}));
     </script>
   </body>

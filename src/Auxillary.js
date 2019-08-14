@@ -15,7 +15,7 @@ export function toElements(object, scopes = [document]){
     else throw 'Error: Expected Primary Type, instead got ' + object;
 }
 
-export function IsPrimitive(id){ return typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
+export function IsPrimitive(id){ return typeof id !== 'object' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
 
 function unbind(element){
     var val = element.Spindle.obj[element.Spindle.key];

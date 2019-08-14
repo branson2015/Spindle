@@ -55,7 +55,7 @@
       else throw 'Error: Expected Primary Type, instead got ' + object;
   }
 
-  function IsPrimitive(id){ return typeof id === 'string' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
+  function IsPrimitive(id){ return typeof id !== 'object' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
 
   function unbind(element){
       var val = element.Spindle.obj[element.Spindle.key];
@@ -87,23 +87,27 @@
   //AddBind
   //ChangeBind
 
+  //TODO: impliment functions as primary type?
+  //put more info into els object?
+
   function Bind(options){    
       var object = options['object'] || {};
-      reduce(object, options['mapping'], toElements(options['scopes'] || document), function(o,k,i,s){ bindobj(o, k, bundle(o, k, s, i)); });
+      reduce(object, options['mapping'], toElements(options['scopes'] || document), function(o,k,i,s){
+          if(Array.isArray(o[k])) addSetter(o,k,s);
+          bindobj(o,k,makeEls(i,s));
+      });
       return object;
    }
 
-  function addSetter(karr, obj, key, scopes){
-      if(obj[key] === undefined){
-          Number.isInteger(+karr[0]) ? obj[key] = [] : obj[key] = {};
+  function addSetter(obj, key, scopes){
+      if(Object.getOwnPropertyDescriptor(obj, key).set === undefined){
           var value = obj[key];
           Object.defineProperty(obj, key, {
               get: function(){return value},
-              set: function(v){ reduce(obj[key], v, scopes, function(o,k, i){ o[k]=i; }); value = obj[key]; },
+              set: function(v){ reduce(obj[key], v, scopes, function(o,k,i){ o[k]=i; }); value = obj[key]; },
               configurable: true
           });
       }
-      return obj[key];
   }
 
    function reduce(object, mapping, scopes, primitivecb){
@@ -112,13 +116,17 @@
 
           var karr = key.split(/[\.\[\]\'\"]/).filter(function(p){ return p; });
           var key = karr.shift();
-          for(; karr.length; key = karr.shift())
-              obj = addSetter(karr, obj, key, scopes);
+          for(; karr.length; key = karr.shift()){
+              obj[key] ||  (obj[key] = Number.isInteger(+karr[0]) ? [] : {});
+              addSetter(obj, key, scopes);
+              obj = obj[key];
+          }
           
-          if(IsPrimitive(id))
+          if(IsPrimitive(id)){
               primitivecb(obj, key, id, scopes);
-          else{
-              addSetter(karr, obj, key, scopes);  
+          }else{
+              obj[key] || (obj[key] = {});    //could this ever be array?
+              addSetter(obj, key, scopes);  
               reduce(obj[key], id, scopes, primitivecb);
           }
       }
@@ -133,6 +141,21 @@
           for(var i = 0; i < els.length; ++i)  els[i].e[els[i].t] = value;
       else if(els.length == 1) value = els[0].e[els[0].t]; //if only 1 element total is present and value is undefined, assign value to element
       else value = null;   //if only 1 value and many elements with potentially different values, initialize value to be null
+      
+      for(var i = 0; i < els.length; ++i){
+          if(els[i].e.tagName === 'INPUT'){
+              (function(i){
+                  var S = function(event){
+                      els.dirty = true;
+                      var val = els[i].e[els[i].t]; 
+                      obj[key] = els[i].rc ? els[i].rc(val) : val; 
+                      for(var j = 0; j < els.length; ++j) els[j].e[els[j].t] = val; 
+                  };
+                  els[i].e.addEventListener('input', S, true);
+                  els[i].e.Spindle = {'obj': obj, 'key': key, 's': S};
+              })(i);
+          }
+      }
 
       Object.defineProperty(obj, key, {
           get: function(){ return value; },
@@ -140,35 +163,30 @@
               if(v instanceof OPS) return v.c(obj, key, els); 
               value = v; 
               for(var i = 0; i < els.length; ++i){
-                  els[i].e[els[i].t] = els[i].tc ? els[i].tc(v) : v; 
+                  if(!els.dirty) els[i].e[els[i].t] = els[i].tc ? els[i].tc(v) : v; 
                   if(els[i].c) els[i].c(v, els[i].e, els[i].t, i);
               } 
+              delete els.dirty;
           },
           configurable: true
       });
   }
 
-  function bundle(obj, key, scopes, elements){
+  function makeEls(primitive, scopes){
       var types, callbacks, retrieves, transforms;
 
-      if(elements instanceof LINK) types = elements.t, callbacks = elements.c, retrieves = elements.rc, transforms = elements.tc, elements = elements.e;
-      elements = toElements(elements, scopes);
+      if(primitive instanceof LINK) types = primitive.t, callbacks = primitive.c, retrieves = primitive.rc, transforms = primitive.tc, primitive = primitive.e;
+      primitive = toElements(primitive, scopes);
       
-      var S;
       var els = [];
-      for(var i = 0; i < elements.length; ++i){
-          if(elements[i].tagName === 'INPUT'){      //maybe get rid of this if statement?
-              (function(i){S = function(event){var val = els[i].e[els[i].t]; obj[key] = els[i].rc ? els[i].rc(val) : val; els[i].e[els[i].t] = val; };})(i);
-              elements[i].addEventListener('input', S, true);
-          }
+      for(var i = 0; i < primitive.length; ++i){
           els.push({
-              e: elements[i],
-              t: Array.isArray(types) ? types[i] : types || getDefaultAttribute(elements[i].tagName), 
+              e: primitive[i],
+              t: Array.isArray(types) ? types[i] : types || getDefaultAttribute(primitive[i].tagName), 
               c: Array.isArray(callbacks) ? callbacks[i] : callbacks,
               tc: Array.isArray(transforms) ? transforms[i] : transforms,
               rc: Array.isArray(retrieves) ? retrieves[i] : retrieves,
           });
-          elements[i].Spindle = {'obj': obj, 'key': key, 's': S};
       }
       return els;
   }
