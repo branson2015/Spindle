@@ -1,5 +1,5 @@
-export function LINK(elements, types, callbacks, retrieves, transforms){ this.e = elements, this.t = types, this.c = callbacks; this.rc = retrieves; this.tc = transforms; }
-export function Link(obj){ return new LINK(obj['elements'], obj['types'], obj['callbacks'], obj['retrieves'], obj['transforms']); }
+export function LINK(elements, types, values, callbacks, retrieves, transforms){ this.e = elements, this.t = types, this.v = values, this.c = callbacks; this.rc = retrieves; this.tc = transforms; }
+export function Link(obj){ return new LINK(obj['elements'], obj['types'], obj['values'], obj['callbacks'], obj['retrieves'], obj['transforms']); }
 
 export var OPS = function(op){ this.c = op; }//operation selector class
 

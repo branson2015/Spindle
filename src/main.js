@@ -8,10 +8,7 @@ export {getDefaultAttribute} from './attributes.js'
 
 export function Bind(options){    
     var object = options['object'] || {};
-    reduce(object, options['mapping'], Aux.toElements(options['scopes'] || document), function(o,k,i,s){
-        if(Array.isArray(o[k])) addSetter(o,k,s);
-        bindobj(o,k,makeEls(i,s))
-    });
+    reduce(object, options['mapping'], Aux.toElements(options['scopes'] || document), makeEls );
     return object;
  }
 
@@ -38,9 +35,9 @@ function addSetter(obj, key, scopes){
             obj = obj[key];
         }
         
-        if(Aux.IsPrimitive(id)){
+        if(Aux.IsPrimitive(id))
             primitivecb(obj, key, id, scopes);
-        }else{
+        else{
             obj[key] || (obj[key] = {});    //could this ever be array?
             addSetter(obj, key, scopes);  
             reduce(obj[key], id, scopes, primitivecb);
@@ -48,15 +45,21 @@ function addSetter(obj, key, scopes){
     }
 }
 
-function bindobj(obj, key, els){
-    var value = obj[key];
+function bindobj(obj, key, els, scopes){
 
-    if(value !== undefined && Array.isArray(value)){  //establish 1 to 1 binding (recurse)
-        for(var i = 0; i < els.length; ++i){ bindobj(value, i, [els[i]]); }  return;
-    }else if(value !== undefined)//establish 1 to all binding (all may be just 1 element)
-        for(var i = 0; i < els.length; ++i)  els[i].e[els[i].t] = value;
-    else if(els.length == 1) value = els[0].e[els[0].t]; //if only 1 element total is present and value is undefined, assign value to element
-    else value = null;   //if only 1 value and many elements with potentially different values, initialize value to be null
+    if(Array.isArray(els.v)){  //establish 1 to 1 binding (recurse)
+        obj[key] = []; 
+        addSetter(obj, key, scopes)
+        for(var i = 0; i < els.length; ++i){
+            var val = [els[i]]; 
+            val.v = els.v[i]; 
+            bindobj(obj[key], i, val, scopes); 
+        }  
+        return;
+    }else if(els.v !== undefined)//establish 1 to all binding (all may be just 1 element)
+        for(var i = 0; i < els.length; ++i)  els[i].e[els[i].t] = els.v;
+    else if(els.length == 1) els.v = els[0].e[els[0].t]; //if only 1 element total is present and value is undefined, assign value to element
+    else els.v = null;   //if only 1 value and many elements with potentially different values, initialize value to be null
     
     for(var i = 0; i < els.length; ++i){
         if(els[i].e.tagName === 'INPUT'){
@@ -74,10 +77,10 @@ function bindobj(obj, key, els){
     }
 
     Object.defineProperty(obj, key, {
-        get: function(){ return value; },
+        get: function(){ return els.v; },
         set: function(v){ 
             if(v instanceof Aux.OPS) return v.c(obj, key, els); 
-            value = v; 
+            els.v = v; 
             for(var i = 0; i < els.length; ++i){
                 if(!els.dirty) els[i].e[els[i].t] = els[i].tc ? els[i].tc(v) : v; 
                 if(els[i].c) els[i].c(v, els[i].e, els[i].t, i)
@@ -88,10 +91,11 @@ function bindobj(obj, key, els){
     });
 }
 
-function makeEls(primitive, scopes){
-    var types, callbacks, retrieves, transforms;
+function makeEls(obj, key, primitive, scopes){
+    if(Array.isArray(obj[key])) addSetter(obj,key,scopes);
+    var types, values, callbacks, retrieves, transforms;
 
-    if(primitive instanceof Aux.LINK) types = primitive.t, callbacks = primitive.c, retrieves = primitive.rc, transforms = primitive.tc, primitive = primitive.e;
+    if(primitive instanceof Aux.LINK) types = primitive.t, values = primitive.v, callbacks = primitive.c, retrieves = primitive.rc, transforms = primitive.tc, primitive = primitive.e;
     primitive = Aux.toElements(primitive, scopes);
     
     var els = [];
@@ -104,5 +108,6 @@ function makeEls(primitive, scopes){
             rc: Array.isArray(retrieves) ? retrieves[i] : retrieves,
         });
     }
-    return els;
+    els.v = values || obj[key];
+    bindobj(obj, key, els, scopes);
 }
