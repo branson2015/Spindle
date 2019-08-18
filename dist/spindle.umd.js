@@ -43,15 +43,13 @@
 
   var OPS = function(op){ this.c = op; };//operation selector class
 
-  function toElements(object, scopes = [document]){    
+  function toElements(object, scope = document){    
       if(typeof object === 'string'){
-          if(object === 'scopes')                                                         return scopes;
-          var elements = [];
-          for(var i = 0; i < scopes.length; ++i)
-              elements = elements.concat(Array.from(scopes[i].querySelectorAll(object))); return elements;                                                             
-      }else if(object instanceof LINK)                                                    return toElements(object.e, scopes);
-      else if(object instanceof HTMLElement || object instanceof HTMLDocument)            return [object];
-      else if(object instanceof HTMLCollection)                                           return Array.from(object);
+          if(object === 'scope')                                              return scope;
+          else                                                                return Array.from(scope.querySelectorAll(object));                                                              
+      }else if(object instanceof LINK)                                        return toElements(object.e, scope);
+      else if(object instanceof HTMLElement || object instanceof HTMLDocument)return [object];
+      else if(object instanceof HTMLCollection)                               return Array.from(object);
       else throw 'Error: Expected Primary Type, instead got ' + object;
   }
 
@@ -92,22 +90,25 @@
 
   function Bind(options){    
       var object = options['object'] || {};
-      reduce(object, options['mapping'], toElements(options['scopes'] || document), makeEls );
+      var scopes = options['scopes'] ? toElements(options['scopes']) : [document];
+      if(scopes.length === 1) reduce(object, options['mapping'], scopes[0], makeEls );
+      else if(Array.isArray(object)) for(var i = 0; i < scopes.length; ++i)  reduce(object[i] || (object[i] = {}), options['mapping'], scopes[i], makeEls );
+      else throw 'Given multiple scopes, but object is not of Array type, instead got ' + object;
       return object;
    }
 
-  function addSetter(obj, key, scopes){
+  function addSetter(obj, key, scope){
       if(Object.getOwnPropertyDescriptor(obj, key).set === undefined){
           var value = obj[key];
           Object.defineProperty(obj, key, {
               get: function(){return value},
-              set: function(v){ reduce(obj[key], v, scopes, function(o,k,i){ o[k]=i; }); value = obj[key]; },
+              set: function(v){ reduce(obj[key], v, scope, function(o,k,i){ o[k]=i; }); value = obj[key]; },
               configurable: true
           });
       }
   }
 
-   function reduce(object, mapping, scopes, primitivecb){
+   function reduce(object, mapping, scope, primitivecb){
       for(var key in mapping){
           var obj = object, id = mapping[key];
 
@@ -115,29 +116,29 @@
           var key = karr.shift();
           for(; karr.length; key = karr.shift()){
               obj[key] ||  (obj[key] = Number.isInteger(+karr[0]) ? [] : {});
-              addSetter(obj, key, scopes);
+              addSetter(obj, key, scope);
               obj = obj[key];
           }
           
           if(IsPrimitive(id))
-              primitivecb(obj, key, id, scopes);
+              primitivecb(obj, key, id, scope);
           else{
               obj[key] || (obj[key] = {});    //could this ever be array?
-              addSetter(obj, key, scopes);  
-              reduce(obj[key], id, scopes, primitivecb);
+              addSetter(obj, key, scope);  
+              reduce(obj[key], id, scope, primitivecb);
           }
       }
   }
 
-  function bindobj(obj, key, els, scopes){
+  function bindobj(obj, key, els, scope){
 
       if(Array.isArray(els.v)){  //establish 1 to 1 binding (recurse)
           obj[key] = []; 
-          addSetter(obj, key, scopes);
+          addSetter(obj, key, scope);
           for(var i = 0; i < els.length; ++i){
               var val = [els[i]]; 
               val.v = els.v[i]; 
-              bindobj(obj[key], i, val, scopes); 
+              bindobj(obj[key], i, val, scope); 
           }  
           return;
       }else if(els.v !== undefined)//establish 1 to all binding (all may be just 1 element)
@@ -175,12 +176,13 @@
       });
   }
 
-  function makeEls(obj, key, primitive, scopes){
-      if(Array.isArray(obj[key])) addSetter(obj,key,scopes);
+  function makeEls(obj, key, primitive, scope){
+      if(Array.isArray(obj[key])) addSetter(obj,key,scope);
       var types, values, callbacks, retrieves, transforms;
 
       if(primitive instanceof LINK) types = primitive.t, values = primitive.v, callbacks = primitive.c, retrieves = primitive.rc, transforms = primitive.tc, primitive = primitive.e;
-      primitive = toElements(primitive, scopes);
+      primitive = toElements(primitive, scope);
+      if(primitive.length === 0)  return;
       
       var els = [];
       for(var i = 0; i < primitive.length; ++i){
@@ -193,7 +195,7 @@
           });
       }
       els.v = values || obj[key];
-      bindobj(obj, key, els, scopes);
+      bindobj(obj, key, els, scope);
   }
 
   exports.Bind = Bind;

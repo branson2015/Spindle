@@ -32,10 +32,10 @@
 
     <script>
       
-      var scopes = ".container:nth-child(2)";
+      var scopes = ".container";
       
-      var obj = {
-        inputTag: ['value1','value2','value3'],
+      var obj = [{
+        inputTag: ['value1','value2'],
         ptags:{
           p2Tag: 'value2',
           p3Tag: 'value3',
@@ -50,16 +50,16 @@
             }
           }]
         }
-      }
+      }];
       
       var mapping = {
-        inputTag: Spindle.Link({elements: 'input', type: 'value', transforms: (v)=>{return v + '2'}, retrieves: (v)=>{return v + '1'}, callbacks: (v)=>{console.log(v)}}),
+        inputTag: Spindle.Link({elements: 'input', values: 'test', type: 'value', transforms: (v)=>{return v + '2'}, retrieves: (v)=>{return v + '1'}, callbacks: (v)=>{console.log(v)}}),
         'ptags.p2Tag': Spindle.Link({elements: 'p:first-of-type', values: 'VALUE2', type: 'innerHTML'}),
         ptags:{
           p3Tag: '.a3',
           p4Tags: '.a4',
           p5Tags: '.a5',
-          p6Tags: document.getElementsByClassName('a6')
+          p6Tags: '.a6'
         },
         'complicated.object[2]': {
           embedded: {

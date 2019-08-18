@@ -3,15 +3,13 @@ export function Link(obj){ return new LINK(obj['elements'], obj['types'], obj['v
 
 export var OPS = function(op){ this.c = op; }//operation selector class
 
-export function toElements(object, scopes = [document]){    
+export function toElements(object, scope = document){    
     if(typeof object === 'string'){
-        if(object === 'scopes')                                                         return scopes;
-        var elements = [];
-        for(var i = 0; i < scopes.length; ++i)
-            elements = elements.concat(Array.from(scopes[i].querySelectorAll(object))); return elements;                                                             
-    }else if(object instanceof LINK)                                                    return toElements(object.e, scopes);
-    else if(object instanceof HTMLElement || object instanceof HTMLDocument)            return [object];
-    else if(object instanceof HTMLCollection)                                           return Array.from(object);
+        if(object === 'scope')                                              return scope;
+        else                                                                return Array.from(scope.querySelectorAll(object));                                                              
+    }else if(object instanceof LINK)                                        return toElements(object.e, scope);
+    else if(object instanceof HTMLElement || object instanceof HTMLDocument)return [object];
+    else if(object instanceof HTMLCollection)                               return Array.from(object);
     else throw 'Error: Expected Primary Type, instead got ' + object;
 }
 
