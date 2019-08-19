@@ -3,8 +3,9 @@ import * as Aux from './Auxillary.js'
 export {UnBind, ReBind, Link} from './Auxillary.js'
 export {getDefaultAttribute} from './attributes.js'
 
-//TODO: impliment functions as primary type?
-//put more info into els object?
+//TODO: put obj, key, and S into els
+//Spindle.Link share
+//addbind/changebind
 
 export function Bind(options){    
     var object = options['object'] || {};

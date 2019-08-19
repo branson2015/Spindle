@@ -15,7 +15,7 @@ export function toElements(object, scope = document){
 
 export function IsPrimitive(id){ return typeof id !== 'object' || id instanceof LINK || id instanceof HTMLElement || id instanceof HTMLCollection; }
 
-function unbind(element){
+export function unbind(element){
     var val = element.Spindle.obj[element.Spindle.key];
     delete element.Spindle.obj[element.Spindle.key];
     element.Spindle.obj[element.Spindle.key] = val;
@@ -38,7 +38,7 @@ export function ReBind(elements){
     return new OPS(function(obj, key, els){  
         for(var i = 0; i < els.length; ++i)
             unbind(els[i].e);
-        Spindle.Bind({'object': obj, 'mapping': {[key]: elements}});
+        window.Spindle.Bind({'object': obj, 'mapping': {[key]: elements}});
     });
 }
 
